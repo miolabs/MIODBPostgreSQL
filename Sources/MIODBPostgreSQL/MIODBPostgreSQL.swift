@@ -33,16 +33,16 @@ open class MIODBPostgresSQL: MIODB {
         
         connection = PQconnectdb("host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(database!)".cString(using: .utf8))
         if PQstatus(connection) == CONNECTION_OK {
-            changeSchema(schema)
+            changeScheme(scheme)
         }
         else {
             connection = nil
         }
     }
     
-    open override func connect(schema:String?){
+    open override func connect(scheme:String?){
         connect()
-        changeSchema(schema)
+        changeScheme(scheme)
     }
     
     open override func disconnect() {
@@ -108,11 +108,11 @@ open class MIODBPostgresSQL: MIODB {
         return items
     }
     
-    open override func changeSchema(_ schema:String?){
-        if schema == nil { return }
+    open override func changeScheme(_ scheme:String?){
+        if scheme == nil { return }
         
-        let dbSchema = schema!.lowercased().replacingOccurrences(of: "-", with: "")
-        _ = executeQueryString("SET search_path TO _\(dbSchema)")
+        let dbScheme = schema!.lowercased().replacingOccurrences(of: "-", with: "")
+        _ = executeQueryString("SET search_path TO _\(dbScheme)")
     }
     
 }
