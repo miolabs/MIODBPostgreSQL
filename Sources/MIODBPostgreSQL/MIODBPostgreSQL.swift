@@ -9,7 +9,7 @@
 import MIODB
 import CLibPQ
 
-open class MIODBPostgresSQL: MIODB {
+open class MIODBPostgreSQL: MIODB {
 
     let defaultPort:Int32 = 5432
     let defaultUser = "root"
