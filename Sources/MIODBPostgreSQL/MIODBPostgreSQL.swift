@@ -109,10 +109,9 @@ open class MIODBPostgreSQL: MIODB {
     }
     
     open override func changeScheme(_ scheme:String?){
-        if scheme == nil { return }
-        
-        let dbScheme = scheme!.lowercased().replacingOccurrences(of: "-", with: "")
-        _ = executeQueryString("SET search_path TO _\(dbScheme)")
+        if let scheme = scheme {
+            _ = executeQueryString("SET search_path TO \(scheme)")
+        }
     }
     
 }
