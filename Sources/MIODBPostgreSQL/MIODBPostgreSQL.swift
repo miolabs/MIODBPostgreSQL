@@ -6,8 +6,22 @@
 //  Copyright © 2019 Javier Segura Perez. All rights reserved.
 //
 
+import Foundation
 import MIODB
 import CLibPQ
+
+enum MIODBPostgreSQLError: Error {
+    case fatalError(_ msg: String)
+}
+
+extension MIODBPostgreSQLError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case let .fatalError(msg):
+            return "[MIODBPostgreSQLError] Fatal error \"\(msg)\"."
+        }
+    }
+}
 
 open class MIODBPostgreSQL: MIODB {
 
@@ -49,7 +63,7 @@ open class MIODBPostgreSQL: MIODB {
         PQfinish(connection)
     }
     
-    open override func executeQueryString(_ query:String) -> [Any]{
+    open override func executeQueryString(_ query:String) throws -> [Any]{
         let res = PQexec(connection, query.cString(using: .utf8))
         defer {
             PQclear(res)
@@ -92,7 +106,7 @@ open class MIODBPostgreSQL: MIODB {
             print("Non fatal error")
             
         case PGRES_FATAL_ERROR:
-            print("Fatal error. " + String(cString: PQresultErrorMessage(res)))
+            throw MIODBPostgreSQLError.fatalError(String(cString: PQresultErrorMessage(res)))
             
         case PGRES_COPY_BOTH:
             print("Copy both")
@@ -110,7 +124,7 @@ open class MIODBPostgreSQL: MIODB {
     
     open override func changeScheme(_ scheme:String?){
         if let scheme = scheme {
-            _ = executeQueryString("SET search_path TO \(scheme)")
+            _ = try! executeQueryString("SET search_path TO \(scheme)")
         }
     }
     
