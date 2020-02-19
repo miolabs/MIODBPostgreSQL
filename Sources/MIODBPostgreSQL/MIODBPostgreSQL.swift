@@ -83,12 +83,13 @@ open class MIODBPostgreSQL: MIODB {
             for row in 0..<PQntuples(res) {
                 var item = [String:Any]()
                 for col in 0..<PQnfields(res){
-                    let colname = String(cString: PQfname(res, col))
-                    //let type = PQftype(res, col)
-                    let value = String(cString: PQgetvalue(res, row, col))
-                    
                     if PQgetisnull(res, row, col) == 1 {continue}
-                    item[colname] = value
+                    
+                    let colname = String(cString: PQfname(res, col))
+                    let type = PQftype(res, col)
+                    let value = PQgetvalue(res, row, col)
+                    
+                    item[colname] = convert(value: value!, withType: type)
                 }
                 items.append(item)
             }
@@ -120,6 +121,21 @@ open class MIODBPostgreSQL: MIODB {
         }
                             
         return items
+    }
+    
+    func convert(value:UnsafePointer<Int8>, withType type:Oid) -> Any {
+                        
+        
+        switch type {
+        case 16: // Boolean
+            return value[0] == 116 ? true : false
+
+        case 23: // Int 4
+            return Int(String(cString: value))!
+
+        default:
+            return String(cString: value)
+        }
     }
     
     open override func changeScheme(_ scheme:String?){
