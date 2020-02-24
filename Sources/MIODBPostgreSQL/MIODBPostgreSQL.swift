@@ -25,6 +25,8 @@ extension MIODBPostgreSQLError: LocalizedError {
 
 open class MIODBPostgreSQL: MIODB {
 
+    public var scheme:String?
+    
     let defaultPort:Int32 = 5432
     let defaultUser = "root"
     let defaultDatabase = "public"
@@ -54,7 +56,7 @@ open class MIODBPostgreSQL: MIODB {
         }
     }
     
-    open override func connect(scheme:String?){
+    open func connect(scheme:String?){
         connect()
         changeScheme(scheme)
     }
@@ -138,7 +140,7 @@ open class MIODBPostgreSQL: MIODB {
         }
     }
     
-    open override func changeScheme(_ scheme:String?){
+    open func changeScheme(_ scheme:String?){
         if let scheme = scheme {
             _ = try! executeQueryString("SET search_path TO \(scheme)")
         }
