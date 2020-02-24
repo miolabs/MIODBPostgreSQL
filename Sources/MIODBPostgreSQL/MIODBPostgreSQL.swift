@@ -63,6 +63,7 @@ open class MIODBPostgreSQL: MIODB {
     
     open override func disconnect() {
         PQfinish(connection)
+        connection = nil
     }
     
     open override func executeQueryString(_ query:String) throws -> [Any]{
