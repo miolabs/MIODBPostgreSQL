@@ -67,6 +67,12 @@ open class MIODBPostgreSQL: MIODB {
     }
     
     open override func executeQueryString(_ query:String) throws -> [Any]{
+        
+        if isInsideTransaction {
+            pushQueryString(query)
+            return []
+        }
+        
         let res = PQexec(connection, query.cString(using: .utf8))
         defer {
             PQclear(res)
@@ -80,7 +86,8 @@ open class MIODBPostgreSQL: MIODB {
             print("Empty query")
             
         case PGRES_COMMAND_OK:
-            print("Command OK")
+            break
+//            print("Command OK")
             
         case PGRES_TUPLES_OK:
             for row in 0..<PQntuples(res) {
@@ -110,7 +117,7 @@ open class MIODBPostgreSQL: MIODB {
             print("Non fatal error")
             
         case PGRES_FATAL_ERROR:
-            throw MIODBPostgreSQLError.fatalError(String(cString: PQresultErrorMessage(res)))
+            throw MIODBPostgreSQLError.fatalError(String(cString: PQresultErrorMessage(res)) + "\n" + query)
             
         case PGRES_COPY_BOTH:
             print("Copy both")
