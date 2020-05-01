@@ -140,9 +140,18 @@ open class MIODBPostgreSQL: MIODB {
         case 16: // Boolean
             return value[0] == 116 ? true : false
 
-        case 23: // Int 4
+        case 20, 21, 23: // Int8, Int2, Int4
             return Int(String(cString: value))!
-
+            
+        case 1700, 701: // numeric, float8
+            return Decimal(string: String(cString: value))!
+            
+        case 1114: // Timestamp
+            return String(cString: value) // return dates as strings
+        case 1043: // varchar
+            return String(cString: value)
+        case 114: // json
+            return String(cString: value)
         default:
             return String(cString: value)
         }
