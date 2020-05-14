@@ -160,6 +160,7 @@ open class MIODBPostgreSQL: MIODB {
     open func changeScheme(_ scheme:String?){
         if let scheme = scheme {
             _ = try! executeQueryString("SET search_path TO \(scheme)")
+            self.scheme = scheme
         }
     }
     
