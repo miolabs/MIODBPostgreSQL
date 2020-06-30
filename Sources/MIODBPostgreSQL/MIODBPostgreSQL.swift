@@ -47,8 +47,9 @@ open class MIODBPostgreSQL: MIODB {
         if user == nil { user = defaultUser }
         if database == nil { database = defaultDatabase }
         
-        connection = PQconnectdb("host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(database!)".cString(using: .utf8))
-        if PQstatus(connection) == CONNECTION_OK {
+        connection = PQconnectdb("host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(database!) gssencmode='disable'".cString(using: .utf8))
+        let status = PQstatus(connection)
+        if  status == CONNECTION_OK {
             changeScheme(scheme)
         }
         else {
