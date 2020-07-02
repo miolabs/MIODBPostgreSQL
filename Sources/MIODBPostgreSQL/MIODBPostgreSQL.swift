@@ -67,7 +67,7 @@ open class MIODBPostgreSQL: MIODB {
         connection = nil
     }
     
-    open override func executeQueryString(_ query:String) throws -> [Any]{
+    open override func executeQueryString(_ query:String) throws -> [[String : Any]]{
         
         if isInsideTransaction {
             pushQueryString(query)
@@ -79,7 +79,7 @@ open class MIODBPostgreSQL: MIODB {
             PQclear(res)
         }
         
-        var items:[Any] = []
+        var items:[[String : Any]] = []
         
         switch PQresultStatus(res) {
                         
