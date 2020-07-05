@@ -42,24 +42,24 @@ open class MIODBPostgreSQL: MIODB {
 //        self.schema = schema
 //    }
     
-    open override func connect(){
+    open override func connect() throws {
         if port == nil { port = defaultPort }
         if user == nil { user = defaultUser }
         if database == nil { database = defaultDatabase }
         
         connection = PQconnectdb("host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(database!) gssencmode='disable'".cString(using: .utf8))
         let status = PQstatus(connection)
-        if  status == CONNECTION_OK {
-            changeScheme(scheme)
-        }
-        else {
+        if  status != CONNECTION_OK {
             connection = nil
+            throw MIODBPostgreSQLError.fatalError("Could not connect to POSTGRESQL Database")
         }
+        
+        try changeScheme(scheme)
     }
     
-    open func connect(scheme:String?){
-        connect()
-        changeScheme(scheme)
+    open func connect(scheme:String?) throws {
+        try connect()
+        try changeScheme(scheme)
     }
     
     open override func disconnect() {
@@ -67,7 +67,7 @@ open class MIODBPostgreSQL: MIODB {
         connection = nil
     }
     
-    open override func executeQueryString(_ query:String) throws -> [[String : Any]]{
+    @discardableResult open override func executeQueryString(_ query:String) throws -> [[String : Any]]{
         
         if isInsideTransaction {
             pushQueryString(query)
@@ -167,9 +167,13 @@ open class MIODBPostgreSQL: MIODB {
         }
     }
     
-    open func changeScheme(_ scheme:String?){
+    open func changeScheme(_ scheme:String?) throws {
+        if connection == nil {
+            throw MIODBPostgreSQLError.fatalError("Could not change the scheme. The connection is nil")
+        }
+        
         if let scheme = scheme {
-            _ = try! executeQueryString("SET search_path TO \(scheme)")
+            try executeQueryString("SET search_path TO \(scheme)")
             self.scheme = scheme
         }
     }
