@@ -52,7 +52,7 @@ open class MIODBPostgreSQL: MIODB {
         let status = PQstatus(connection)
         if  status != CONNECTION_OK {
             connection = nil
-            throw MIODBPostgreSQLError.fatalError("Could not connect to POSTGRESQL Database. Connection string: \(connection)")
+            throw MIODBPostgreSQLError.fatalError("Could not connect to POSTGRESQL Database. Connection string: \(connectionString)")
         }
         
         try changeScheme(scheme)
