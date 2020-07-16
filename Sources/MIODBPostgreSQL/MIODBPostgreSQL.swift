@@ -69,7 +69,7 @@ open class MIODBPostgreSQL: MIODB {
         connection = nil
     }
     
-    @discardableResult open override func executeQueryString(_ query:String) throws -> [[String : Any]]{
+    @discardableResult open override func executeQueryString(_ query:String) throws -> [[String : Any?]]?{
         
         if isInsideTransaction {
             pushQueryString(query)
