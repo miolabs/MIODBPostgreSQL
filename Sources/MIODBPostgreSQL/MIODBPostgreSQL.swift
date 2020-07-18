@@ -71,10 +71,10 @@ open class MIODBPostgreSQL: MIODB {
     
     @discardableResult open override func executeQueryString(_ query:String) throws -> [[String : Any?]]?{
         
-        if isInsideTransaction {
-            pushQueryString(query)
-            return []
-        }
+//        if isInsideTransaction {
+//            pushQueryString(query)
+//            return []
+//        }
         
         let res = PQexec(connection, query.cString(using: .utf8))
         defer {
