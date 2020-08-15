@@ -175,7 +175,7 @@ open class MIODBPostgreSQL: MIODB {
         }
         
         if let scheme = scheme {
-            try executeQueryString("SET search_path TO \(scheme)")
+            try executeQueryString("SET search_path TO \(scheme), public")
             self.scheme = scheme
         }
     }
