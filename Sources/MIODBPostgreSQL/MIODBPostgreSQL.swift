@@ -175,6 +175,10 @@ open class MIODBPostgreSQL: MIODB {
 
         case 2950: // UUID
             return String(cString: value)
+            
+        case 25: // Text
+            return String(cString: value)
+            
         default:
             NSLog("Type not implemented. Fallback to string. type: \(type)")
             return String(cString: value)
