@@ -146,25 +146,37 @@ open class MIODBPostgreSQL: MIODB {
         case 20: // Int8
             return Int64(String(cString: value))!
             
-        case 23: // Int 4
+        case 23: // Int4
             return Int32(String(cString: value))!
             
-        case 21: // Int 16
+        case 21: // Int2
             return Int16(String(cString: value))!
             
         case 18: // UInt8, char
             return Int8(String(cString: value))!
             
-        case 1700, 701: // numeric, float8
+        case 1700, 700, 701, 790: // numeric, float4, float8, money
             return Decimal(string: String(cString: value))!
             
         case 1114: // Timestamp
             return String(cString: value) // return dates as strings
+        case 1184: // Timestamp Z
+            return String(cString: value) // return dates as strings
+        case 1083: // Time
+            return String(cString: value) // return dates as strings
+
+        
         case 1043: // varchar
             return String(cString: value)
         case 114: // json
             return String(cString: value)
+        case 3807: // json binary array
+            return String(cString: value)
+
+        case 2950: // UUID
+            return String(cString: value)
         default:
+            NSLog("Type not implemented. Fallback to string. type: \(type)")
             return String(cString: value)
         }
     }
