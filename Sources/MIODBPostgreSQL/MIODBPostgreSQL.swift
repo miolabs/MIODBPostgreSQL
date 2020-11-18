@@ -176,7 +176,7 @@ open class MIODBPostgreSQL: MIODB {
         case 2950: // UUID
             return String(cString: value)
             
-        case 25: // Text
+        case 25,19: // Text, Name(used when getting information from the DB as which contraints/indices/etc has)
             return String(cString: value)
             
         default:
