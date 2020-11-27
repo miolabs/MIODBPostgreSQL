@@ -107,7 +107,10 @@ open class MIODBPostgreSQL: MIODB {
             print("Non fatal error")
             
         case PGRES_FATAL_ERROR:
-            throw MIODBPostgreSQLError.fatalError(String(cString: PQresultErrorMessage(res)) + "\n" + query)
+            let errorMessage = String(cString: PQresultErrorMessage(res)) + "\n" + query
+            disconnect()
+            try connect()
+            throw MIODBPostgreSQLError.fatalError(errorMessage)
             
         case PGRES_COPY_BOTH:
             print("Copy both")
