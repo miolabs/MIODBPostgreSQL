@@ -25,23 +25,12 @@ extension MIODBPostgreSQLError: LocalizedError {
 
 open class MIODBPostgreSQL: MIODB {
 
-    public var scheme:String?
-    
     let defaultPort:Int32 = 5432
     let defaultUser = "root"
     let defaultDatabase = "public"
     
     var connection:OpaquePointer?
-    
-//    public init(host:String, port:Int32?, user:String?, password:String?, database:String?, schema:String?){
-//        self.host = host
-//        self.port = port
-//        self.user = user
-//        self.password = password
-//        self.database = database
-//        self.schema = schema
-//    }
-    
+        
     open override func connect() throws {
         if port == nil { port = defaultPort }
         if user == nil { user = defaultUser }
@@ -55,14 +44,12 @@ open class MIODBPostgreSQL: MIODB {
             connection = nil
             throw MIODBPostgreSQLError.fatalError("Could not connect to POSTGRESQL Database. Connection string: \(connectionString)")
         }
-        
-        try changeScheme(scheme)
     }
     
-    open func connect(scheme:String?) throws {
-        try connect()
-        try changeScheme(scheme)
-    }
+//    open func connect(scheme:String?) throws {
+//        try connect()
+//        try changeScheme(scheme)
+//    }
     
     open override func disconnect() {
         PQfinish(connection)
@@ -185,14 +172,14 @@ open class MIODBPostgreSQL: MIODB {
         }
     }
     
-    open func changeScheme(_ scheme:String?) throws {
+    open override func changeScheme(_ scheme:String?) throws {
         if connection == nil {
             throw MIODBPostgreSQLError.fatalError("Could not change the scheme. The connection is nil")
         }
         
-        if let scheme = scheme {
-            try executeQueryString("SET search_path TO \(scheme), public")
-            self.scheme = scheme
+        if scheme != nil {
+            try executeQueryString("SET search_path TO \(scheme!), public")
+            self.scheme = scheme!
         }
     }
     
