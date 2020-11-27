@@ -8,8 +8,12 @@
 import Foundation
 import MIODB
 
-open class MDBPostgreConnection : MDBConnection {    
+
+open class MDBPostgreConnection : MDBConnection
+{
     public override func create ( ) throws -> MIODB {
-        return MIODBPostgreSQL( connection: self )
+        let db = MIODBPostgreSQL( connection: self )
+        try db.connect()
+        return db
     }
 }
