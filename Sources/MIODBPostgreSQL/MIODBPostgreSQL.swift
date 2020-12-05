@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import MIOCore
 import MIODB
 import CLibPQ
 
@@ -59,7 +60,7 @@ open class MIODBPostgreSQL: MIODB {
     @discardableResult open override func executeQueryString(_ query:String) throws -> [[String : Any?]]? {
         
         var items:[[String : Any?]]?
-        try autoreleasepool {
+        try MIOCoreAutoReleasePool {
             items = try _executeQueryString(query)
         }
         
@@ -140,7 +141,7 @@ open class MIODBPostgreSQL: MIODB {
                   
         var ret:Any?
         
-        autoreleasepool {
+        MIOCoreAutoReleasePool {
             
             switch type {
             case 16: // Boolean
