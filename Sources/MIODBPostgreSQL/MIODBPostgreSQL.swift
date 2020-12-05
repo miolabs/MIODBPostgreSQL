@@ -56,7 +56,17 @@ open class MIODBPostgreSQL: MIODB {
         connection = nil
     }
     
-    @discardableResult open override func executeQueryString(_ query:String) throws -> [[String : Any?]]?{
+    @discardableResult open override func executeQueryString(_ query:String) throws -> [[String : Any?]]? {
+        
+        var items:[[String : Any?]]?
+        try autoreleasepool {
+            items = try _executeQueryString(query)
+        }
+        
+        return items
+    }
+    
+    @discardableResult open func _executeQueryString(_ query:String) throws -> [[String : Any?]]? {
         
 //        if isInsideTransaction {
 //            pushQueryString(query)
@@ -127,52 +137,58 @@ open class MIODBPostgreSQL: MIODB {
     }
     
     func convert(value:UnsafePointer<Int8>, withType type:Oid) -> Any {
-                        
+                  
+        var ret:Any?
         
-        switch type {
-        case 16: // Boolean
-            return value[0] == 116 ? true : false
+        autoreleasepool {
+            
+            switch type {
+            case 16: // Boolean
+                ret = value[0] == 116 ? true : false
 
-        case 20: // Int8
-            return Int64(String(cString: value))!
-            
-        case 23: // Int4
-            return Int32(String(cString: value))!
-            
-        case 21: // Int2
-            return Int16(String(cString: value))!
-            
-        case 18: // UInt8, char
-            return Int8(String(cString: value))!
-            
-        case 1700, 700, 701, 790: // numeric, float4, float8, money
-            return Decimal(string: String(cString: value))!
-            
-        case 1114: // Timestamp
-            return String(cString: value) // return dates as strings
-        case 1184: // Timestamp Z
-            return String(cString: value) // return dates as strings
-        case 1083: // Time
-            return String(cString: value) // return dates as strings
+            case 20: // Int8
+                ret = Int64(String(cString: value))!
+                
+            case 23: // Int4
+                ret = Int32(String(cString: value))!
+                
+            case 21: // Int2
+                ret = Int16(String(cString: value))!
+                
+            case 18: // UInt8, char
+                ret = Int8(String(cString: value))!
+                
+            case 1700, 700, 701, 790: // numeric, float4, float8, money
+                ret = Decimal(string: String(cString: value))!
+                
+            case 1114: // Timestamp
+                ret = String(cString: value) // return dates as strings
+            case 1184: // Timestamp Z
+                ret = String(cString: value) // return dates as strings
+            case 1083: // Time
+                ret = String(cString: value) // return dates as strings
 
-        
-        case 1043: // varchar
-            return String(cString: value)
-        case 114: // json
-            return String(cString: value)
-        case 3807: // json binary array
-            return String(cString: value)
+            
+            case 1043: // varchar
+                ret = String(cString: value)
+            case 114: // json
+                ret = String(cString: value)
+            case 3807: // json binary array
+                ret = String(cString: value)
 
-        case 2950: // UUID
-            return String(cString: value)
-            
-        case 25,19: // Text, Name(used when getting information from the DB as which contraints/indices/etc has)
-            return String(cString: value)
-            
-        default:
-            NSLog("Type not implemented. Fallback to string. type: \(type)")
-            return String(cString: value)
+            case 2950: // UUID
+                ret = String(cString: value)
+                
+            case 25,19: // Text, Name(used when getting information from the DB as which contraints/indices/etc has)
+                ret = String(cString: value)
+                
+            default:
+                NSLog("Type not implemented. Fallback to string. type: \(type)")
+                ret = String(cString: value)
+            }
         }
+        
+        return ret!
     }
     
     open override func changeScheme(_ scheme:String?) throws {
