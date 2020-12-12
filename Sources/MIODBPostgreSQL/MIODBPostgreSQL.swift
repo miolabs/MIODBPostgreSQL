@@ -63,7 +63,17 @@ open class MIODBPostgreSQL: MIODB {
 //            return []
 //        }
         
-        let res = PQexec(connection, query.cString(using: .utf8))
+        if ( PQstatus(connection) != CONNECTION_OK ) {
+            NSLog( "[FATAL ERROR]: Postgres connection was lost, re-connecting and crossing fingers" )
+            disconnect()
+            usleep( 500000 ) // 0.5 seconds
+            try connect()
+        }
+
+
+        let c_string = query.cString(using: .utf8)!
+        let res = PQexec(connection, strdup( c_string ) )
+        
         defer {
             PQclear(res)
         }
@@ -108,8 +118,6 @@ open class MIODBPostgreSQL: MIODB {
             
         case PGRES_FATAL_ERROR:
             let errorMessage = String(cString: PQresultErrorMessage(res)) + "\n" + query
-            disconnect()
-            try connect()
             throw MIODBPostgreSQLError.fatalError(errorMessage)
             
         case PGRES_COPY_BOTH:
