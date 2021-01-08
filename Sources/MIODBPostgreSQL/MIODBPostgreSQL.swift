@@ -19,7 +19,7 @@ extension MIODBPostgreSQLError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case let .fatalError(msg):
-            return "[MIODBPostgreSQLError] Fatal error \"\(msg)\"."
+            return "\033[[MIODBPostgreSQLError] Fatal error \"\(msg)\"."
         }
     }
 }
@@ -75,7 +75,7 @@ open class MIODBPostgreSQL: MIODB {
 //        }
         
         if ( PQstatus(connection) != CONNECTION_OK ) {
-            NSLog( "[FATAL ERROR]: Postgres connection was lost, re-connecting and crossing fingers" )
+            NSLog( "\033[[FATAL ERROR]: Postgres connection was lost, re-connecting and crossing fingers")
             disconnect()
             usleep( 500000 ) // 0.5 seconds
             try connect()
