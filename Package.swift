@@ -26,7 +26,7 @@ let package = Package(
             name: "CLibPQ",
             pkgConfig: "libpq",
             providers: [
-                .brew(["postgresql"]),
+                .brew(["libpq"]),
                 .apt(["libpq-dev"])
             ]
         ),
