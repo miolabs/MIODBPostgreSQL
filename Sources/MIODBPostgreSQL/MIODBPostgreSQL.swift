@@ -82,7 +82,7 @@ open class MIODBPostgreSQL: MIODB {
         }
 
 
-        let res = PQexec(connection, UnsafePointer(Array(query.utf8CString)))
+        let res = PQexec(connection, UnsafePointer<Int8>(Array(query.utf8CString)))
         
         defer {
             PQclear(res)
