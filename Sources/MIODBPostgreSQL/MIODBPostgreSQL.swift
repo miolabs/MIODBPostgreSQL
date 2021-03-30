@@ -82,9 +82,7 @@ open class MIODBPostgreSQL: MIODB {
         }
 
 
-        let c_string = query.cString(using: .utf8)!
-        let str = strdup( c_string )
-        let res = PQexec(connection, str )
+        let res = PQexec(connection, UnsafePointer(Array(query.utf8CString)))
         
         defer {
             PQclear(res)
