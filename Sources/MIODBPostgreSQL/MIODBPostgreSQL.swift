@@ -88,7 +88,7 @@ open class MIODBPostgreSQL: MIODB {
             PQclear(res)
         }
         
-        var items:[[String : Any]] = []
+        var items:[[String : Any?]] = []
         
         switch PQresultStatus(res) {
                         
@@ -101,11 +101,15 @@ open class MIODBPostgreSQL: MIODB {
             
         case PGRES_TUPLES_OK:
             for row in 0..<PQntuples(res) {
-                var item = [String:Any]()
+                var item: [String:Any?] = [:]
                 for col in 0..<PQnfields(res){
-                    if PQgetisnull(res, row, col) == 1 {continue}
-                    
                     let colname = String(cString: PQfname(res, col))
+                    
+                    if PQgetisnull(res, row, col) == 1 {
+                        item[ colname ] = NSNull( )
+                        continue
+                    }
+                    
                     let type = PQftype(res, col)
                     let value = PQgetvalue(res, row, col)
                     
