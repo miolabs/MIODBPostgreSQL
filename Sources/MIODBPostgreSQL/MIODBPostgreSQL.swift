@@ -194,6 +194,9 @@ open class MIODBPostgreSQL: MIODB {
             case 25,19: // Text, Name(used when getting information from the DB as which contraints/indices/etc has)
                 ret = String(cString: value)
                 
+            case 1082: // date
+                ret = String(cString: value)
+                
             default:
                 NSLog("Type not implemented. Fallback to string. type: \(type)")
                 ret = String(cString: value)
