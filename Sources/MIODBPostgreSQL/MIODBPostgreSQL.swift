@@ -57,9 +57,9 @@ open class MIODBPostgreSQL: MIODB {
         connection = nil
     }
     
-    @discardableResult open override func executeQueryString(_ query:String) throws -> [[String : Any?]]? {
+    @discardableResult open override func executeQueryString(_ query:String) throws -> [[String : Any]]? {
         
-        var items:[[String : Any?]]?
+        var items:[[String : Any]]?
         try MIOCoreAutoReleasePool {
             items = try _executeQueryString(query)
         }
@@ -67,7 +67,7 @@ open class MIODBPostgreSQL: MIODB {
         return items
     }
     
-    @discardableResult open func _executeQueryString(_ query:String) throws -> [[String : Any?]]? {
+    @discardableResult open func _executeQueryString(_ query:String) throws -> [[String : Any]]? {
         
 //        if isInsideTransaction {
 //            pushQueryString(query)
@@ -88,7 +88,7 @@ open class MIODBPostgreSQL: MIODB {
             PQclear(res)
         }
         
-        var items:[[String : Any?]] = []
+        var items:[[String : Any]] = []
         
         switch PQresultStatus(res) {
                         
@@ -101,7 +101,7 @@ open class MIODBPostgreSQL: MIODB {
             
         case PGRES_TUPLES_OK:
             for row in 0..<PQntuples(res) {
-                var item: [String:Any?] = [:]
+                var item: [String:Any] = [:]
                 for col in 0..<PQnfields(res){
                     let colname = String(cString: PQfname(res, col))
                     
