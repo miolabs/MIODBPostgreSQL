@@ -183,7 +183,7 @@ open class MIODBPostgreSQL: MIODB {
             
             case 1043: // varchar
                 ret = String(cString: value)
-            case 114: // json
+            case 114, 3802: // json, jsonb (= transformable for us)
                 ret = String(cString: value)
             case 3807: // json binary array
                 ret = String(cString: value)
