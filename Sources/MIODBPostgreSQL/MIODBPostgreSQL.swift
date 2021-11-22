@@ -226,8 +226,9 @@ extension MDBQuery
 //        return field(field, value: v)
 //    }
     
-    public func encryptedEqual(field:String, value:String, salt:String) -> MDBQuery {
-        let v = "crypt('\(salt)', \(value))"
-        return equal(field: field, value: v)
-    }
+//    public func encryptedEqual(field:String, value:String, salt:String) -> MDBQuery {
+//        let v = "crypt('\(salt)', \(value))"
+//        return equal(field: field, value: v)
+//    }
+    
 }
