@@ -58,6 +58,11 @@ open class MIODBPostgreSQL: MIODB {
     }
     
     @discardableResult open override func executeQueryString(_ query:String) throws -> [[String : Any]]? {
+        queryWillExecute() // To notify the pool idle time out wher about to start
+        
+        defer {
+            queryDidExecute() // To notify the pool idle time out we don't nned the conneciton anymore
+        }
         
         var items:[[String : Any]]?
         try MIOCoreAutoReleasePool {
@@ -131,7 +136,7 @@ open class MIODBPostgreSQL: MIODB {
             print("Non fatal error")
             
         case PGRES_FATAL_ERROR:
-            let errorMessage = String(cString: PQresultErrorMessage(res)) + "\n" + query
+            let errorMessage = scheme != nil ? "\(scheme!):" : "" + String(cString: PQresultErrorMessage(res)) + "\n" + query
             throw MIODBPostgreSQLError.fatalError(errorMessage)
             
         case PGRES_COPY_BOTH:
