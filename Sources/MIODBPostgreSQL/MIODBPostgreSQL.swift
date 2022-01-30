@@ -136,7 +136,7 @@ open class MIODBPostgreSQL: MIODB {
             print("Non fatal error")
             
         case PGRES_FATAL_ERROR:
-            let errorMessage = scheme != nil ? "\(scheme!):" : "" + String(cString: PQresultErrorMessage(res)) + "\n" + query
+            let errorMessage = (scheme != nil ? "\(scheme!):" : "") + String(cString: PQresultErrorMessage(res)) + "\n" + query
             throw MIODBPostgreSQLError.fatalError(errorMessage)
             
         case PGRES_COPY_BOTH:
