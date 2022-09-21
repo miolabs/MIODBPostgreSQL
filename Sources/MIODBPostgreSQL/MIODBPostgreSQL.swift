@@ -118,7 +118,7 @@ open class MIODBPostgreSQL: MIODB {
                     let type = PQftype(res, col)
                     let value = PQgetvalue(res, row, col)
                     
-                    item[colname] = convert(value: value!, withType: type)
+                    item[colname] = try convert(value: value!, withType: type)
                 }
                 items.append(item)
             }
@@ -153,58 +153,51 @@ open class MIODBPostgreSQL: MIODB {
         return items
     }
     
-    func convert(value:UnsafePointer<Int8>, withType type:Oid) -> Any {
-                  
-        var ret:Any?
-        
-        MIOCoreAutoReleasePool {
-            
-            switch type {
-            case 16: // Boolean
-                ret = value[0] == 116 ? true : false
+    func convert ( value:UnsafePointer<Int8>, withType type:Oid ) throws -> Any {
+        if type == 16 { // Boolean
+            return (value[0] == 116) as Bool
+        }
 
-            case 20: // Int8
-                ret = Int64(String(cString: value))!
-                
-            case 23: // Int4
-                ret = Int32(String(cString: value))!
-                
-            case 21: // Int2
-                ret = Int16(String(cString: value))!
-                
-            case 18: // UInt8, char
-                ret = Int8(String(cString: value))!
+        
+        var ret:Any?
+
+
+        try MIOCoreAutoReleasePool {
+            let str = String(cString: value)
+
+            switch type {
+
+            case 20: ret = MIOCoreInt64Value( str )! // Int8
+            case 23: ret = MIOCoreInt32Value( str )! // Int4
+            case 21: ret = MIOCoreInt16Value( str )! // Int2
+            case 18: ret = MIOCoreInt8Value(  str )! // UInt8, char
                 
             case 1700, 700, 701, 790: // numeric, float4, float8, money
-                ret = Decimal(string: String(cString: value))!
+                ret = Decimal( string: str )!
                 
-            case 1114: // Timestamp
-                ret = String(cString: value) // return dates as strings
-            case 1184: // Timestamp Z
-                ret = String(cString: value) // return dates as strings
-            case 1083: // Time
-                ret = String(cString: value) // return dates as strings
+            case 1114: ret = MIOCoreDate( fromString: str ) // Timestamp
+            case 1184: ret = MIOCoreDate( fromString: str ) // Timestamp Z
+            case 1083: ret = str // Time
 
-            
             case 1043: // varchar
-                ret = String(cString: value)
+                ret = str
             case 114, 3802: // json, jsonb (= transformable for us)
-                ret = String(cString: value)
+                ret = try JSONSerialization.jsonObject(with: str.data(using: .utf8)!, options: [.allowFragments] )
             case 3807: // json binary array
-                ret = String(cString: value)
+                ret = try JSONSerialization.jsonObject(with: str.data(using: .utf8)!, options: [.allowFragments] )
 
             case 2950: // UUID
-                ret = String(cString: value)
+                ret = UUID( uuidString: str )
                 
             case 25,19: // Text, Name(used when getting information from the DB as which contraints/indices/etc has)
-                ret = String(cString: value)
+                ret = str
                 
             case 1082: // date
-                ret = String(cString: value)
+                ret = MIOCoreDate( fromString: str )
                 
             default:
                 NSLog("Type not implemented. Fallback to string. type: \(type)")
-                ret = String(cString: value)
+                ret = str
             }
         }
         
