@@ -80,7 +80,7 @@ open class MIODBPostgreSQL: MIODB {
 //        }
         
         if ( PQstatus(connection) != CONNECTION_OK ) {
-            NSLog( "[[FATAL ERROR]: Postgres connection was lost, re-connecting and crossing fingers")
+            print( "[[FATAL ERROR]: Postgres connection was lost, re-connecting and crossing fingers")
             disconnect()
             usleep( 500000 ) // 0.5 seconds
             try connect()
@@ -130,13 +130,13 @@ open class MIODBPostgreSQL: MIODB {
             print("Copy in")
             
         case PGRES_BAD_RESPONSE:
-            print("Bad response")
+            print("Bad response")	
             
         case PGRES_NONFATAL_ERROR:
             print("Non fatal error")
-            
+              
         case PGRES_FATAL_ERROR:
-            let errorMessage = (scheme != nil ? "\(scheme!):" : "") + String(cString: PQresultErrorMessage(res)) + "\n" + query
+            let errorMessage = (scheme != nil ? "\(scheme!): " : "") + String(cString: PQresultErrorMessage(res)) + "\n" + query
             throw MIODBPostgreSQLError.fatalError(errorMessage)
             
         case PGRES_COPY_BOTH:
