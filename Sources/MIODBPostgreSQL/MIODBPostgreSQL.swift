@@ -162,7 +162,7 @@ open class MIODBPostgreSQL: MIODB {
         var ret:Any?
 
 
-        MIOCoreAutoReleasePool {
+        try MIOCoreAutoReleasePool {
             let str = String(cString: value)
 
             switch type {
@@ -175,25 +175,25 @@ open class MIODBPostgreSQL: MIODB {
             case 1700, 700, 701, 790: // numeric, float4, float8, money
                 ret = Decimal( string: str )!
                 
-            case 1114: ret = str // MIOCoreDate( fromString: str ) // Timestamp
-            case 1184: ret = str // MIOCoreDate( fromString: str ) // Timestamp Z
-            case 1083: ret = str // Time
+            case 1114: ret = MIOCoreDate( fromString: str ) // Timestamp
+            case 1184: ret = MIOCoreDate( fromString: str ) // Timestamp Z
+            case 1083: ret = str // TODO: Time
 
             case 1043: // varchar
                 ret = str
             case 114, 3802: // json, jsonb (= transformable for us)
-                ret = str //try JSONSerialization.jsonObject(with: str.data(using: .utf8)!, options: [.allowFragments] )
+                ret = try JSONSerialization.jsonObject(with: str.data(using: .utf8)!, options: [.allowFragments] )
             case 3807: // json binary array
-                ret = str //try JSONSerialization.jsonObject(with: str.data(using: .utf8)!, options: [.allowFragments] )
+                ret = try JSONSerialization.jsonObject(with: str.data(using: .utf8)!, options: [.allowFragments] )
 
             case 2950: // UUID
-                ret = str // UUID( uuidString: str )
+                ret = UUID( uuidString: str )
                 
             case 25,19: // Text, Name(used when getting information from the DB as which contraints/indices/etc has)
                 ret = str
                 
             case 1082: // date
-                ret = str //MIOCoreDate( fromString: str )
+                ret = MIOCoreDate( fromString: str )
                 
             default:
                 NSLog("Type not implemented. Fallback to string. type: \(type)")
