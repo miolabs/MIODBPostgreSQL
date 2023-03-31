@@ -188,18 +188,29 @@ open class MIODBPostgreSQL: MIODB {
                 case 16: ret = try value.bool() // Bool
                 
                 case 18: ret = MIOCoreInt8Value( try value.optionalInt() ) // UInt8, char
-                case 20: ret = MIOCoreInt64Value( try value.optionalInt() ) // Int8
                 case 21: ret = MIOCoreInt16Value( try value.optionalInt() ) // Int2
                 case 23: ret = MIOCoreInt32Value( try value.optionalInt() ) // Int4
+                case 20: ret = MIOCoreInt64Value( try value.optionalInt() ) // Int8
                 
                 case 1700, 700, 701, 790: // numeric, float4, float8, money
                     ret = try value.optionalDecimal()
                 
-                case 1114: ret = try value.optionalTimestamp()?.date(in: serverTimeZone) // Timestamp
-                case 1184: ret = try value.optionalTimestamp()?.date(in: serverTimeZone) // Timestamp Z
-                case 1082: ret = try value.optionalDate()?.date(in: serverTimeZone) // Date
-                case 1083: ret = try value.optionalTime()?.date(in: serverTimeZone) // Time
-
+                // Test dates:
+                case 1114, 1184, 1082, 1083: ret = try value.optionalString()
+                    /*
+                case 1114:
+//                    //ret = try value.optionalTimestamp()?.date(in: serverTimeZone) // Timestamp
+                    ret = MIOCoreDate(fromString: try value.string() )
+                case 1184:
+//                    ret = try value.optionalTimestamp()?.date(in: serverTimeZone) // Timestamp Z
+                    ret = MIOCoreDate(fromString: try value.string() )
+                case 1082:
+//                    ret = try value.optionalDate()?.date(in: serverTimeZone) // Date
+                    ret = MIOCoreDate(fromString: try value.string() )
+                case 1083:
+//                    ret = try value.optionalTime()?.date(in: serverTimeZone) // Time
+                    ret = try value.string() // TODO: Time
+*/
                 case 1043: // varchar
                     ret = try value.optionalString()
                     
@@ -212,10 +223,13 @@ open class MIODBPostgreSQL: MIODB {
                         ret = try JSONSerialization.jsonObject(with: str.data(using: .utf8)!, options: [.allowFragments] )
                     }
 
-                case 2950: // UUID
+                case 2950: // UUID, TODO: uncomment to return UUID objects, now defaulting to string because backward compatibility issues
+                    /*
                     if let str = try value.optionalString() {
                         ret = UUID( uuidString: str )
                     }
+                     */
+                    ret = try value.optionalString()
                     
                 case 25,19: // Text, Name(used when getting information from the DB as which contraints/indices/etc has)
                     ret = try value.optionalString()
