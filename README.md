@@ -71,12 +71,13 @@ let db = MDBPostgreConnection( host: host, port: port, user: user, password: pas
 let products = try db.executeString( "SELECT * from products" )
 ```
 
-## Usefull link on how to setup C library in swift
-https://theswiftdev.com/how-to-use-c-libraries-in-swift/
-
 ## API Documentation
 
 **TODO**
+
+
+## Usefull link on how to setup C library in swift
+https://theswiftdev.com/how-to-use-c-libraries-in-swift/
 
 ## License
 This library is licensed under Apache 2.0. Full license text is available in [LICENSE](https://github.com/miolabs/MIODBPostgreSQL/blob/master/LICENSE.txt)
