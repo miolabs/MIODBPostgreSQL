@@ -5,14 +5,12 @@ import PackageDescription
 
 let package = Package(
     name: "MIODBPostgreSQL",
-    platforms: [
-        .macOS(.v10_11), .iOS(.v14)
-    ],
+//    platforms: [
+//        .macOS(.v10_11), .iOS(.v14)
+//    ],
     products: [
         // Products define the executables and libraries produced by a package, and make them visible to other packages.
-        .library(
-            name: "MIODBPostgreSQL",
-            targets: ["MIODBPostgreSQL"]),
+        .library( name: "MIODBPostgreSQL", targets: ["MIODBPostgreSQL"]),
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -32,7 +30,10 @@ let package = Package(
         ),
         .target(
             name: "MIODBPostgreSQL",
-            dependencies: ["MIODB", "CLibPQ"]),
+            dependencies: [
+                .product(name: "MIODB", package: "MIODB"),
+                "CLibPQ",
+            ]),
         .testTarget(
             name: "MIODBPostgreSQLTests",
             dependencies: ["MIODBPostgreSQL"]),
