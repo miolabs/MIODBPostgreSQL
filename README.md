@@ -16,14 +16,14 @@ $ sudo apt-get install libpq-dev
 $ brew install libpq
 ```
 
-#####NOTES: 
+##### NOTES: 
 
-libpq doesn't come with postgresql but brew doesn't make any symbolic link in /usr/local/lib or /usr/local/include folder to avoid conflicts in case you already have a postgresql installation so in order to compile in Xcode you should have to run ( if you do not have postgresql installed ):
+**libpq** doesn't come with **postgresql** but **brew** doesn't make any symbolic link in /usr/local/lib or /usr/local/include folder to avoid conflicts in case you already have a **postgresql** installation so in order to compile in Xcode you should have to run ( if you do not have **postgresql** installed ):
 ```
 $ brew link --force lippq
 ```
 
-open ssl could be antoehr issue. In modern macOS, open ssl came with the OS itself and brew can't link the headers, libs files or the pc file (pkg-config). The workaround is link the installed  brew version of the open ssl pkg-config files manually:
+**open ssl** could be another issue. In modern **macOS**, **open ssl** came with the OS itself and **brew** can't link the headers, libs files or the pc file (pkg-config). The workaround is link the installed **brew** version of the **open ssl** pkg-config files manually:
 ```
 $ ln -s /usr/local/opt/openssl/lib/pkgconfig/libssl.pc /url/local/lib/pkgconfig/libssl.pc
 $ ln -s /usr/local/opt/openssl/lib/pkgconfig/libcrypto.pc /url/local/lib/pkgconfig/libcrypto.pc
@@ -37,7 +37,7 @@ $ pkg-config --libs libpq
 $ pkg-config --cflags libpq
 ```
   
-MacOS doesn't have pkg-config binary so if you need it install with:
+**MacOS** doesn't have **pkg-config** binary so if you need it install with:
 ```
 $ brew install pkg-config
 ```
