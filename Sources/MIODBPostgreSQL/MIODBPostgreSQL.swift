@@ -32,7 +32,7 @@ open class MIODBPostgreSQL: MIODB {
     
     var connection:OpaquePointer?
         
-    open override func connect( _ to_db: String? ) throws {
+    open override func connect( _ to_db: String? = nil ) throws {
         if port == nil { port = defaultPort }
         if user == nil { user = defaultUser }
         
