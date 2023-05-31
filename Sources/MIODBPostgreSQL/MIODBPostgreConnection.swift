@@ -11,9 +11,9 @@ import MIODB
 
 open class MDBPostgreConnection : MDBConnection
 {
-    public override func create ( ) throws -> MIODB {
+    public override func create ( _ to_db: String? ) throws -> MIODB {
         let db = MIODBPostgreSQL( connection: self )
-        try db.connect()
+        try db.connect( to_db )
         return db
     }
 }
