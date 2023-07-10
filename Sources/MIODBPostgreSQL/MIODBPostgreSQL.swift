@@ -31,7 +31,7 @@ open class MIODBPostgreSQL: MIODB {
     let defaultDatabase = "public"
     
     var connection:OpaquePointer?
-        
+
     open override func connect( _ to_db: String? = nil ) throws {
         if port == nil { port = defaultPort }
         if user == nil { user = defaultUser }
