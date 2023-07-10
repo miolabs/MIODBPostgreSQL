@@ -40,12 +40,13 @@ open class MIODBPostgreSQL: MIODB {
         // if database == nil { database = defaultDatabase }
         
         //let connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(database!) gssencmode='disable'"
-        let connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(final_db)"
-        connection = PQconnectdb(connectionString.cString(using: .utf8))
+        connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(final_db)"
+        connection = PQconnectdb(connectionString!.cString(using: .utf8))
+
         let status = PQstatus(connection)
         if  status != CONNECTION_OK {
             connection = nil
-            throw MIODBPostgreSQLError.fatalError("Could not connect to POSTGRESQL Database. Connection string: \(connectionString)")
+            throw MIODBPostgreSQLError.fatalError("Could not connect to POSTGRESQL Database. Connection string: \(connectionString!)")
         }
     }
     
