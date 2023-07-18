@@ -25,8 +25,8 @@ $ brew link --force libpq
 
 open ssl could be another issue. In modern macOS, open ssl came with the OS itself and brew can't link the headers, libs files or the pc file (pkg-config). The workaround is link the installed  brew version of the open ssl pkg-config files manually:
 ```
-$ ln -s /usr/local/opt/openssl/lib/pkgconfig/libssl.pc /url/local/lib/pkgconfig/libssl.pc
-$ ln -s /usr/local/opt/openssl/lib/pkgconfig/libcrypto.pc /url/local/lib/pkgconfig/libcrypto.pc
+$ ln -s /usr/local/opt/openssl/lib/pkgconfig/libssl.pc /usr/local/lib/pkgconfig/libssl.pc
+$ ln -s /usr/local/opt/openssl/lib/pkgconfig/libcrypto.pc /usr/local/lib/pkgconfig/libcrypto.pc
 ```  
 
 Be aware that sometimes the url that the openssl is installed is /usr/local/Cellar/openssl@3/lib/pkgconfig so change the path accordingly.
