@@ -12,14 +12,14 @@ import MIODB
 import CLibPQ
 
 enum MIODBPostgreSQLError: Error {
-    case fatalError(_ msg: String)
+    case fatalError( _ code:String, _ msg: String )
 }
 
 extension MIODBPostgreSQLError: LocalizedError {
     public var errorDescription: String? {
         switch self {
-        case let .fatalError(msg):
-            return "[[MIODBPostgreSQLError] Fatal error \"\(msg)\"."
+        case let .fatalError(code, msg):
+            return "[[MIODBPostgreSQLError] Fatal error. Code: \(code) Message: \"\(msg)\"."
         }
     }
 }
@@ -46,7 +46,7 @@ open class MIODBPostgreSQL: MIODB {
         let status = PQstatus(connection)
         if  status != CONNECTION_OK {
             connection = nil
-            throw MIODBPostgreSQLError.fatalError("Could not connect to POSTGRESQL Database. Connection string: \(connectionString!)")
+            throw MIODBPostgreSQLError.fatalError("-1", "Could not connect to POSTGRESQL Database. Connection string: \(connectionString!)")
         }
     }
     
@@ -140,7 +140,9 @@ open class MIODBPostgreSQL: MIODB {
               
         case PGRES_FATAL_ERROR:
             let errorMessage = (scheme != nil ? "\(scheme!): " : "") + String(cString: PQresultErrorMessage(res)) + "\n" + query
-            throw MIODBPostgreSQLError.fatalError(errorMessage)
+            let err_code = PQresultErrorField(res, 67 )
+            let code = err_code != nil ? String( cString: err_code! ) : "0"
+            throw MIODBPostgreSQLError.fatalError(code, errorMessage)
             
         case PGRES_COPY_BOTH:
             print("Copy both")
@@ -209,7 +211,7 @@ open class MIODBPostgreSQL: MIODB {
     
     open override func changeScheme(_ scheme:String?) throws {
         if connection == nil {
-            throw MIODBPostgreSQLError.fatalError("Could not change the scheme. The connection is nil")
+            throw MIODBPostgreSQLError.fatalError("-2","Could not change the scheme. The connection is nil")
         }
         
         if scheme != nil {
