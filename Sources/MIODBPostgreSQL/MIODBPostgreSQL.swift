@@ -12,14 +12,14 @@ import MIODB
 import PostgresClientKit
 
 enum MIODBPostgreSQLError: Error {
-    case fatalError(_ msg: String)
+    case fatalError( _ code:String, _ msg: String )
 }
 
 extension MIODBPostgreSQLError: LocalizedError {
     public var errorDescription: String? {
         switch self {
-        case let .fatalError(msg):
-            return "[[MIODBPostgreSQLError] Fatal error \"\(msg)\"."
+        case let .fatalError(code, msg):
+            return "[[MIODBPostgreSQLError] Fatal error. Code: \(code) Message: \"\(msg)\"."
         }
     }
 }
@@ -80,13 +80,22 @@ open class MIODBPostgreSQL: MIODB {
     let defaultDatabase = "public"
     let serverTimeZone = TimeZone(secondsFromGMT: 0)!
     
+<<<<<<< HEAD
     var connection:PostgresClientKit.Connection?
         
     open override func connect() throws {
+=======
+    var connection:OpaquePointer?
+
+    open override func connect( _ to_db: String? = nil ) throws {
+>>>>>>> master
         if port == nil { port = defaultPort }
         if user == nil { user = defaultUser }
-        if database == nil { database = defaultDatabase }
         
+        let final_db = to_db ?? database ?? defaultDatabase
+        // if database == nil { database = defaultDatabase }
+        
+<<<<<<< HEAD
         var configuration = PostgresClientKit.ConnectionConfiguration()
         configuration.host = host!
         configuration.port = Int(port!)
@@ -99,6 +108,16 @@ open class MIODBPostgreSQL: MIODB {
         }
         catch let error {
             throw MIODBPostgreSQLError.fatalError("Could not connect to POSTGRESQL Database. ERROR: \(error.localizedDescription)")
+=======
+        //let connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(database!) gssencmode='disable'"
+        connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(final_db)"
+        connection = PQconnectdb(connectionString!.cString(using: .utf8))
+
+        let status = PQstatus(connection)
+        if  status != CONNECTION_OK {
+            connection = nil
+            throw MIODBPostgreSQLError.fatalError("-1", "Could not connect to POSTGRESQL Database. Connection string: \(connectionString!)")
+>>>>>>> master
         }
     }
     
@@ -173,8 +192,39 @@ open class MIODBPostgreSQL: MIODB {
                     print("[WARNING] Failed to retrieve column metadata");
                 }
             }
+<<<<<<< HEAD
             //let city = try columns[0].string()
             dicts.append(dict)
+=======
+            
+        case PGRES_COPY_OUT:
+            print("Copy out")
+            
+        case PGRES_COPY_IN:
+            print("Copy in")
+            
+        case PGRES_BAD_RESPONSE:
+            print("Bad response")	
+            
+        case PGRES_NONFATAL_ERROR:
+            print("Non fatal error")
+              
+        case PGRES_FATAL_ERROR:
+            let errorMessage = (scheme != nil ? "\(scheme!): " : "") + String(cString: PQresultErrorMessage(res)) + "\n" + query
+            let err_code = PQresultErrorField(res, 67 )
+            let code = err_code != nil ? String( cString: err_code! ) : "0"
+            throw MIODBPostgreSQLError.fatalError(code, errorMessage)
+            
+        case PGRES_COPY_BOTH:
+            print("Copy both")
+            
+        case PGRES_SINGLE_TUPLE:
+            print("Single tupple")
+        
+        default:
+            print("Response not implemented." +  String(cString: PQresultErrorMessage(res)))
+        
+>>>>>>> master
         }
         return dicts
     }
@@ -248,7 +298,7 @@ open class MIODBPostgreSQL: MIODB {
     
     open override func changeScheme(_ scheme:String?) throws {
         if connection == nil {
-            throw MIODBPostgreSQLError.fatalError("Could not change the scheme. The connection is nil")
+            throw MIODBPostgreSQLError.fatalError("-2","Could not change the scheme. The connection is nil")
         }
         
         if scheme != nil {
