@@ -79,27 +79,19 @@ open class MIODBPostgreSQL: MIODB {
     let defaultUser = "root"
     let defaultDatabase = "public"
     let serverTimeZone = TimeZone(secondsFromGMT: 0)!
-    
-<<<<<<< HEAD
     var connection:PostgresClientKit.Connection?
         
-    open override func connect() throws {
-=======
-    var connection:OpaquePointer?
-
     open override func connect( _ to_db: String? = nil ) throws {
->>>>>>> master
         if port == nil { port = defaultPort }
         if user == nil { user = defaultUser }
         
         let final_db = to_db ?? database ?? defaultDatabase
         // if database == nil { database = defaultDatabase }
         
-<<<<<<< HEAD
         var configuration = PostgresClientKit.ConnectionConfiguration()
         configuration.host = host!
         configuration.port = Int(port!)
-        configuration.database = database!
+        configuration.database = final_db
         configuration.user = user!
         configuration.credential = .md5Password(password: password!)
         
@@ -107,17 +99,7 @@ open class MIODBPostgreSQL: MIODB {
             connection = try PostgresClientKit.Connection(configuration: configuration)
         }
         catch let error {
-            throw MIODBPostgreSQLError.fatalError("Could not connect to POSTGRESQL Database. ERROR: \(error.localizedDescription)")
-=======
-        //let connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(database!) gssencmode='disable'"
-        connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(final_db)"
-        connection = PQconnectdb(connectionString!.cString(using: .utf8))
-
-        let status = PQstatus(connection)
-        if  status != CONNECTION_OK {
-            connection = nil
-            throw MIODBPostgreSQLError.fatalError("-1", "Could not connect to POSTGRESQL Database. Connection string: \(connectionString!)")
->>>>>>> master
+            throw MIODBPostgreSQLError.fatalError("-1", "Could not connect to POSTGRESQL Database. ERROR: \(error.localizedDescription)")
         }
     }
     
@@ -150,18 +132,23 @@ open class MIODBPostgreSQL: MIODB {
         
         do {
             guard let conn = connection else {
-                throw MIODBPostgreSQLError.fatalError("Can't query a nil Connection.")
+                throw MIODBPostgreSQLError.fatalError("-2", "Can't query a nil Connection.")
             }
-            let statement = try conn.prepareStatement(text: query)
-            defer { statement.close() }
             
-            let cursor = try statement.execute(parameterValues: [], retrieveColumnMetadata: true)
-            defer { cursor.close() }
-            
-            return try buildDictFromCursor(cursor)
+            var dict: [[String : Any]] = []
+            try MIOCoreAutoReleasePool {
+                let statement = try conn.prepareStatement(text: query)
+                defer { statement.close() }
+                
+                let cursor = try statement.execute(parameterValues: [], retrieveColumnMetadata: true)
+                defer { cursor.close() }
+                
+                dict = try buildDictFromCursor(cursor)
+            }
+            return dict
         }
         catch let error as PostgresError {
-            throw MIODBPostgreSQLError.fatalError("Query error: \(error.localizedDescription)")
+            throw MIODBPostgreSQLError.fatalError("-3", "Query error: \(error.localizedDescription)")
         }
     }
     
@@ -178,11 +165,14 @@ open class MIODBPostgreSQL: MIODB {
                     let valueType = columnMetadata.dataTypeOID
                     do {
                         dict[key] = try convert(value: columns[colIndex], withType: valueType)
+                        if dict[key] is NSNull {
+                            dict[key] = nil
+                        }
                     }
                     catch let error as PostgresError {
                         switch error {
                             case .valueIsNil:
-                                dict[key] = NSNull()
+                                dict[key] = nil
                                 break
                             default:
                                 throw error
@@ -192,39 +182,8 @@ open class MIODBPostgreSQL: MIODB {
                     print("[WARNING] Failed to retrieve column metadata");
                 }
             }
-<<<<<<< HEAD
             //let city = try columns[0].string()
             dicts.append(dict)
-=======
-            
-        case PGRES_COPY_OUT:
-            print("Copy out")
-            
-        case PGRES_COPY_IN:
-            print("Copy in")
-            
-        case PGRES_BAD_RESPONSE:
-            print("Bad response")	
-            
-        case PGRES_NONFATAL_ERROR:
-            print("Non fatal error")
-              
-        case PGRES_FATAL_ERROR:
-            let errorMessage = (scheme != nil ? "\(scheme!): " : "") + String(cString: PQresultErrorMessage(res)) + "\n" + query
-            let err_code = PQresultErrorField(res, 67 )
-            let code = err_code != nil ? String( cString: err_code! ) : "0"
-            throw MIODBPostgreSQLError.fatalError(code, errorMessage)
-            
-        case PGRES_COPY_BOTH:
-            print("Copy both")
-            
-        case PGRES_SINGLE_TUPLE:
-            print("Single tupple")
-        
-        default:
-            print("Response not implemented." +  String(cString: PQresultErrorMessage(res)))
-        
->>>>>>> master
         }
         return dicts
     }
