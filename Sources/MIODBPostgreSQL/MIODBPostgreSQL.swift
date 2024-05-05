@@ -93,7 +93,7 @@ open class MIODBPostgreSQL: MIODB
             try connect()
         }
         
-        let r = try query.withCString { query_cstr in
+        let r:[[String : Any]] = try query.withCString { query_cstr in
             let res = PQexec( _connection, query_cstr )
             
             defer { PQclear(res) }
