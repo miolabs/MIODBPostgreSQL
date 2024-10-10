@@ -30,6 +30,8 @@ open class MIODBPostgreSQL: MIODB
     let defaultUser = "root"
     let defaultDatabase = "public"
     
+    static private let semaphore = DispatchSemaphore(value: 1)
+
     var _connection:OpaquePointer?
     var _connection_str: [CChar]?
 
@@ -46,8 +48,10 @@ open class MIODBPostgreSQL: MIODB
         connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(final_db)"
         _connection_str = connectionString!.cString(using: .utf8)
         
+        MIODBPostgreSQL.semaphore.wait()
         _connection = PQconnectdb( _connection_str )
         let status = PQstatus( _connection )
+        MIODBPostgreSQL.semaphore.signal()
         if  status != CONNECTION_OK {
             _connection = nil
             throw MIODBPostgreSQLError.fatalError("-1", "Could not connect to POSTGRESQL Database. Connection string: \(connectionString!)")

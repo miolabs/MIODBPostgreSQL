@@ -1,8 +1,17 @@
 import XCTest
 @testable import MIODBPostgreSQL
 
+
 final class MIODBPostgreSQLTests: XCTestCase {
-    func testConnection() {
+    let SkipTestSuite = true
+
+    // This is call from LinuxMain.swift
+    static var allTests = [
+        ("testConnection", testConnection),
+    ]
+
+    func testConnection() throws {
+        try XCTSkipIf(SkipTestSuite, "Life Test Suite not enabled")
         let host_key = ProcessInfo.processInfo.environment["HOST"] ?? ""
         let user_key = ProcessInfo.processInfo.environment["USER"] ?? ""
         let pass_key = ProcessInfo.processInfo.environment["PASS"] ?? ""
@@ -27,8 +36,5 @@ final class MIODBPostgreSQLTests: XCTestCase {
         
         XCTAssert( found_key )
     }
-
-    static var allTests = [
-        ("testConnection", testConnection),
-    ]
+   
 }
