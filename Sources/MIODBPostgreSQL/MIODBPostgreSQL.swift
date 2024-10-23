@@ -35,6 +35,8 @@ open class MIODBPostgreSQL: MIODB
     var _connection:OpaquePointer?
     var _connection_str: [CChar]?
 
+    static var timeZoneBehaviourV2 = true  // New requeriments for timestamp columns (oct 2024). See TimezoneTests.swift 
+
     deinit { disconnect() }
     
     open override func connect( _ to_db: String? = nil ) throws {
@@ -121,7 +123,7 @@ open class MIODBPostgreSQL: MIODB
                         
                         let type = PQftype(res, col)
                         let value = PQgetvalue(res, row, col)
-                        
+                        //print("Type: \(type) Value: \(String(cString: value!))")
                         item[colname] = try convert(value: value!, withType: type)
                     }
                     items.append(item)
@@ -169,7 +171,9 @@ open class MIODBPostgreSQL: MIODB
             ret = Decimal( string: str )!
             
         case 1114: ret = MIOCoreDate( fromString: str ) // Timestamp
-        case 1184: ret = MIOCoreDate( fromString: str ) // Timestamp Z
+        case 1184: ret = MIODBPostgreSQL.timeZoneBehaviourV2 ? 
+                            MIODBPostgreSQL.parseDateTimeWithTimeZone(str) : 
+                            MIOCoreDate( fromString: str ) // Timestamp Z
         case 1083: ret = str // TODO: Time
 
         case 1043: // varchar
@@ -207,6 +211,18 @@ open class MIODBPostgreSQL: MIODB
                 
         try executeQueryString("SET search_path TO \(scheme!), public")
         try super.changeScheme(scheme)
+    }
+
+// Several formats are supported here, search this function in TimezoneTests.swift
+    static func parseDateTimeWithTimeZone(_ str:String) -> Date? {
+        let curated = str.replacingOccurrences(of: " ", with: "T")  // 2020-01-01 00:00:00+01 -> 2020-01-01T00:00:00+01
+        let formatter = ISO8601DateFormatter()
+        var date = formatter.date(from: curated)
+        if date == nil {
+            formatter.formatOptions.insert(.withFractionalSeconds)
+            date = formatter.date(from: curated)
+        }
+        return date
     }
     
 }

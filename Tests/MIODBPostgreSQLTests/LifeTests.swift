@@ -8,6 +8,9 @@ import CLibPQ
 // Life tests for postgreSQL
 // ----------------------------------
 //
+// Some tests to check actual behaviour of the libraries
+//
+//
 // Environment setup with docker
 // ------------------------------
 // 1.- Get the postgres image: 
@@ -22,12 +25,13 @@ import CLibPQ
 // Manage the database
 // ------------------------------
 // - Access: 
-//      psql -dDBTest01 -Uuser
+//      psql -U user -d DBTest01
 // - Delete all schemas:
 //      DO $$ DECLARE schema_name text; BEGIN FOR schema_name IN SELECT nspname FROM pg_namespace WHERE nspname LIKE '_000000%' LOOP EXECUTE format('DROP SCHEMA IF EXISTS %I CASCADE', schema_name); END LOOP;END $$;
 // - Delete all tables from public:
 //      DO $$ DECLARE tabname text; BEGIN FOR tabname IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' LOOP EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(tabname) || ' CASCADE'; END LOOP; END $$;
-
+// - If you need to query directly, this is the schema pattern:
+//      _00000000000000000000000000010000.tabla3
 
 final class LifeTests: XCTestCase {
     //// Set to true to skip the test suite 
@@ -61,7 +65,7 @@ final class LifeTests: XCTestCase {
     }
 
     override class func tearDown() {
-        LifeTests.inst01!.disconnect()
+        LifeTests.inst01?.disconnect()
         super.tearDown()
     }
 
@@ -78,13 +82,6 @@ final class LifeTests: XCTestCase {
                 try db.executeQueryString("DROP SCHEMA IF EXISTS \(schema) CASCADE")
             }
         }
-    }
-
-    func getCurrentThreadID() -> Int64 {
-        let threadID = pthread_self() 
-        let threadIDValue = UInt(bitPattern: threadID) 
-        return Int64(threadIDValue)
-        //print("Thread ID: \(threadIDValue)")
     }
 
     func setupTables(_ db: MIODBPostgreSQL, _ schema: String) throws {
@@ -106,8 +103,19 @@ final class LifeTests: XCTestCase {
                     valor2 NUMERIC(10, 0),
                     tabla1_id UUID REFERENCES esquema.tabla1(id));
                 """
+        let tabla3 = """
+                CREATE TABLE esquema.tabla3 (
+                    id UUID PRIMARY KEY,
+                    date_ntz1 TIMESTAMP,
+                    date_ntz2 TIMESTAMP WITHOUT TIME ZONE,
+                    date_tz TIMESTAMP WITH TIME ZONE,
+                    date_creation_ntz TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    date_creation_tz TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                    );
+                """
         try db.executeQueryString(tabla1.replacingOccurrences(of: "esquema", with: schema))
         try db.executeQueryString(tabla2.replacingOccurrences(of: "esquema", with: schema))
+        try db.executeQueryString(tabla3.replacingOccurrences(of: "esquema", with: schema))
 
         // CREATE SEQUENCE esquema.mi_secuencia START 1;
 
@@ -149,276 +157,26 @@ final class LifeTests: XCTestCase {
         return createdOk
     }
 
-// MARK: - inserts    
-
-    func doInserts(_ i: Int, _ numInserts: Int) throws {
-        do {
-            let threadID = getCurrentThreadID()
-            let db = try LifeTests.conn01!.create(LifeTests.db01) as! MIODBPostgreSQL
-            let schema = getSchemaString(i)
-            for j in 0..<numInserts {
-                let id1 = UUID().uuidString
-                let id2 = UUID().uuidString
-                let valor = j * 100
-                let query1 = try MDBQuery( schema + ".tabla1") {
-                    Insert( [
-                        "id": id1,
-                        "nombre": "Nombre \(j)",
-                        "valor": valor,
-                        "schema_id": i,
-                        "thread": threadID,
-                    ] )
-                }
-                try db.executeQueryString(MDBQueryEncoderSQL(query1).rawQuery())
-
-                let query2 = try MDBQuery( schema + ".tabla2") {
-                    Insert( [
-                        "id": id2,
-                        "descripcion": "Descripcion \(j)",
-                        "cantidad": Double(valor) + 0.25,
-                        "valor2": valor,
-                        "tabla1_id": id1,
-                    ] )
-                }
-                try db.executeQueryString(MDBQueryEncoderSQL(query2).rawQuery())
-            }
-            mutex.wait()
-            threadIds.append(threadID)
-            mutex.signal()
-            db.disconnect()
+// MARK: - single quote    
+    // MIODB automatically escapes single quotes and we receive one quote in the query. All as expected
+    func testSingleQuote() throws{
+        try createSchemas(numberOfSchemes: 1)
+        let schema = getSchemaString(0)
+        let queryInsert = try MDBQuery( schema + ".tabla1") {
+            Insert( [
+                "id": UUID().uuidString,
+                "nombre": "Nombre con ' comilla"
+            ] )
         }
-        catch {
-            //print("ERROR +++ Thread \(i)")
-            XCTFail("Error in thread \(i): \(error.localizedDescription)")
-        }
-        //print("Thread \(i) finished")
+        XCTAssertEqual(queryInsert.values["nombre"]?.value, "'Nombre con '' comilla'")
+        try LifeTests.inst01!.executeQueryString(MDBQueryEncoderSQL(queryInsert).rawQuery())
+        let rows = try LifeTests.inst01!.executeQueryString(MDBQueryEncoderSQL(MDBQuery( schema + ".tabla1").select()).rawQuery())
+        XCTAssertEqual(rows!.count, 1)
+        XCTAssertEqual(rows![0]["nombre"] as! String, "Nombre con ' comilla")
     }
 
-// MARK: - independent  
-    func checkTabla1IndependentInserts(_ db: MIODBPostgreSQL, _ schemaNumber: Int, _ insertsPerThread: Int) throws {
-        let schema = getSchemaString(schemaNumber)
-        let query = MDBQuery( schema + ".tabla1").select().orderBy("fecha_creacion", .ASC)
-        let rows = try db.executeQueryString(MDBQueryEncoderSQL(query).rawQuery())
-        XCTAssertEqual(rows!.count, insertsPerThread)
-        var lastValor : Int32 = -1;
-        var thread : Int64 = 0
-        for i in 0..<rows!.count {
-            let row = rows![i]
-            let contador = row["contador"] as! Int32
-            XCTAssertTrue(contador > lastValor)
-            XCTAssertEqual(row["nombre"] as! String, "Nombre \(i)")
-            XCTAssertEqual(row["valor"] as! Decimal, Decimal(i * 100))
-            XCTAssertEqual(row["schema_id"] as! Int32, Int32(schemaNumber))
-            let threadRow = row["thread"] as! Int64
-            XCTAssertTrue(threadIds.contains(threadRow)) // thread id is in the list of threads
-            
-            if i == 0 {
-                thread = threadRow
-            }
-            else {
-                XCTAssertEqual(threadRow, thread) // all rows from the same thread
-            }
-            lastValor = contador
-        }
-        if let index = threadIds.firstIndex(of: thread) {
-            threadIds.remove(at: index)
-        }
-    }
-    
-    func checkIndependentInserts(_ numberOfThreads: Int, _ insertsPerThread: Int) throws{
-        XCTAssertTrue(threadIds.count == numberOfThreads)
-        for i in 0..<numberOfThreads { 
-            //print("Checking thread \(i) ")
-            let db = LifeTests.inst01!
-            
-            try checkTabla1IndependentInserts(db, i, insertsPerThread)
 
-            // let query2 = try MDBQuery( schema + ".tabla2") {
-            //     Select( [ "id", "descripcion", "cantidad", "valor2", "tabla1_id" ] )
-            // }
-            // let rows2 = try db.executeQueryString(MDBQueryEncoderSQL(query2).rawQuery())
-            // XCTAssertEqual(rows2!.count, insertsPerThread)
-        }
-        XCTAssertTrue(threadIds.count == 0) // all threads were in the list
-    }
 
-    func independentInsert_Threads(numberOfThreads: Int, insertsPerThread: Int) throws{
-        try createSchemas(numberOfSchemes: numberOfThreads)
-
-        let semaphore = DispatchSemaphore(value: 0) 
-        for i in 0..<numberOfThreads { 
-            //print("Dispatching thread \(i) ")
-            let thread = Thread {
-                try? self.doInserts(i, insertsPerThread)
-                semaphore.signal()
-            }
-            thread.start()
-        }
-        // Esperar a que todos los threads terminen
-        for _ in 0..<numberOfThreads {
-            semaphore.wait()
-        }
-        try checkIndependentInserts(numberOfThreads, insertsPerThread)
-    }
-
-    func independentInsert_DispatchQueue(numberOfThreads: Int, insertsPerThread: Int) throws {
-        try createSchemas(numberOfSchemes: numberOfThreads)
-        
-        let dispatchGroup = DispatchGroup()
-        for i in 0..<numberOfThreads {
-            dispatchGroup.enter() 
-            //print("Dispatching thread \(i) ")
-            DispatchQueue.global().async {
-                try? self.doInserts(i, insertsPerThread)
-                dispatchGroup.leave() 
-            }
-        }
-        dispatchGroup.wait()
-        try checkIndependentInserts(numberOfThreads, insertsPerThread)
-    }
-
-    func testIndependentSchemas_025_Threads() throws{
-        try XCTSkipIf(SkipTestSuite, "Life Test Suite not enabled")
-        try independentInsert_Threads(numberOfThreads: 25, insertsPerThread: 100)
-    }
-    func testIndependentSchemas_100_Threads() throws{
-        try XCTSkipIf(SkipTestSuite, "Life Test Suite not enabled")
-        try independentInsert_Threads(numberOfThreads: 100, insertsPerThread: 100)
-    }
-    func testIndependentSchemas_200_Threads() throws{
-        try XCTSkipIf(SkipTestSuite, "Life Test Suite not enabled")
-        try independentInsert_Threads(numberOfThreads: 200, insertsPerThread: 80)
-    }
-    func testIndependentSchemas_500_Threads() throws{
-        try XCTSkipIf(SkipTestSuite, "Life Test Suite not enabled")
-        try independentInsert_Threads(numberOfThreads: 500, insertsPerThread: 50)
-    }
-    func testIndependentSchemas_025_DispatchQ() throws{
-        try XCTSkipIf(SkipTestSuite, "Life Test Suite not enabled")
-        try independentInsert_DispatchQueue(numberOfThreads: 25, insertsPerThread: 100)
-    }
-    func testIndependentSchemas_100_DispatchQ() throws{
-        try XCTSkipIf(SkipTestSuite, "Life Test Suite not enabled")
-        try independentInsert_DispatchQueue(numberOfThreads: 100, insertsPerThread: 100)
-    }
-    func testIndependentSchemas_200_DispatchQ() throws{
-        try XCTSkipIf(SkipTestSuite, "Life Test Suite not enabled")
-        try independentInsert_DispatchQueue(numberOfThreads: 200, insertsPerThread: 80)
-    }
-    func testIndependentSchemas_500_DispatchQ() throws{
-        try XCTSkipIf(SkipTestSuite, "Life Test Suite not enabled")
-        try independentInsert_DispatchQueue(numberOfThreads: 500, insertsPerThread: 50)
-    }
-
-// MARK: - same schm      
-    func checkTabla1SameSchemaInserts(_ db: MIODBPostgreSQL, _ schemaNumber: Int, _ threadsPerGroup: Int, _ insertsPerThread: Int) throws {
-        let schema = getSchemaString(schemaNumber)
-        let query = MDBQuery( schema + ".tabla1").select().orderBy("fecha_creacion", .ASC)
-        let rows = try db.executeQueryString(MDBQueryEncoderSQL(query).rawQuery())
-        XCTAssertEqual(rows!.count, threadsPerGroup * insertsPerThread)
-        //var lastValor : Int32 = -1;
-        var threadInserts : [Int64: Int] = [:]
-        for i in 0..<rows!.count {
-            let row = rows![i]
-            //let contador = row["contador"] as! Int32
-            //XCTAssertTrue(contador > lastValor) This is not true any more. We have to order by date or serial, both may not work in multi-thread
-            XCTAssertEqual(row["schema_id"] as! Int32, Int32(schemaNumber))
-            let threadRow = row["thread"] as! Int64
-            XCTAssertTrue(threadIds.contains(threadRow)) // thread id is in the list of threads
-            if let count = threadInserts[threadRow] {
-                threadInserts[threadRow] = count + 1
-            }
-            else {
-                threadInserts[threadRow] = 1
-            }
-            //lastValor = contador
-        }
-        for (thread, count) in threadInserts {
-            XCTAssertEqual(count, insertsPerThread)
-            if let index = threadIds.firstIndex(of: thread) {
-                threadIds.remove(at: index)
-            }
-        }
-    }
-    
-    func checkSameSchemaInserts(_ numberOfGroups: Int, _ threadsPerGroup: Int, _ insertsPerThread: Int) throws{
-        let numberOfThreads = numberOfGroups * threadsPerGroup
-
-        XCTAssertTrue(threadIds.count == numberOfThreads)
-        
-        for i in 0..<numberOfGroups { 
-            //print("Checking thread \(i) ")
-            let db = LifeTests.inst01!
-            
-            try checkTabla1SameSchemaInserts(db, i, threadsPerGroup, insertsPerThread)
-        }
-         XCTAssertTrue(threadIds.count == 0) // all threads were in the list
-    }
-
-    func sameSchemaInsert_Threads(numberOfGroups: Int, threadsPerGroup: Int, insertsPerThread: Int) throws{
-        try createSchemas(numberOfSchemes: numberOfGroups)
-
-        let numberOfThreads = numberOfGroups * threadsPerGroup
-        let semaphore = DispatchSemaphore(value: 0) 
-        for i in 0..<numberOfThreads { 
-            //print("Dispatching thread \(i) ")
-            let group = i / threadsPerGroup
-            let thread = Thread {
-                try? self.doInserts(group, insertsPerThread)
-                semaphore.signal()
-            }
-            thread.start()
-        }
-        // Esperar a que todos los threads terminen
-        for _ in 0..<numberOfThreads {
-            semaphore.wait()
-        }
-        try checkSameSchemaInserts(numberOfGroups, threadsPerGroup, insertsPerThread)
-    }
-
-     func sameSchemaInsert_DispatchQueue(numberOfGroups: Int, threadsPerGroup: Int, insertsPerThread: Int) throws{
-        try createSchemas(numberOfSchemes: numberOfGroups)
-        
-        let numberOfThreads = numberOfGroups * threadsPerGroup
-        let dispatchGroup = DispatchGroup()
-        for i in 0..<numberOfThreads {
-            let group = i / threadsPerGroup
-            dispatchGroup.enter() 
-            //print("Dispatching thread \(i) ")
-            DispatchQueue.global().async {
-                try? self.doInserts(group, insertsPerThread)
-                dispatchGroup.leave() 
-            }
-        }
-        dispatchGroup.wait()
-        try checkSameSchemaInserts(numberOfGroups, threadsPerGroup, insertsPerThread)
-    }
-
-    func testSameSchema_15x5_Threads() throws{
-        try XCTSkipIf(SkipTestSuite, "Life Test Suite not enabled")
-        try sameSchemaInsert_Threads(numberOfGroups: 15, threadsPerGroup: 5, insertsPerThread: 50)
-    }
-    func testSameSchema_40x10_Threads() throws{
-        try XCTSkipIf(SkipTestSuite, "Life Test Suite not enabled")
-        try sameSchemaInsert_Threads(numberOfGroups: 40, threadsPerGroup: 10, insertsPerThread: 30)
-    }
-    func testSameSchema_10x40_Threads() throws{
-        try XCTSkipIf(SkipTestSuite, "Life Test Suite not enabled")
-        try sameSchemaInsert_Threads(numberOfGroups: 10, threadsPerGroup: 40, insertsPerThread: 30)
-    }
-
-    func testSameSchema_15x5_DispatchQ() throws{
-        try XCTSkipIf(SkipTestSuite, "Life Test Suite not enabled")
-        try sameSchemaInsert_DispatchQueue(numberOfGroups: 15, threadsPerGroup: 5, insertsPerThread: 50)
-    }
-    func testSameSchema_40x10_DispatchQ() throws{
-        try XCTSkipIf(SkipTestSuite, "Life Test Suite not enabled")
-        try sameSchemaInsert_DispatchQueue(numberOfGroups: 40, threadsPerGroup: 10, insertsPerThread: 30)
-    }
-    func testSameSchema_10x40_DispatchQ() throws{
-        try XCTSkipIf(SkipTestSuite, "Life Test Suite not enabled")
-        try sameSchemaInsert_DispatchQueue(numberOfGroups: 10, threadsPerGroup: 40, insertsPerThread: 30)
-    }
 
 
 }

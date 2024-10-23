@@ -1,34 +1,32 @@
 {
-  "object": {
-    "pins": [
-      {
-        "package": "MIOCore",
-        "repositoryURL": "https://github.com/miolabs/MIOCore.git",
-        "state": {
-          "branch": "master",
-          "revision": "d798e7d40413d40da3e6667ff3a9cd81f08ea712",
-          "version": null
-        }
-      },
-      {
-        "package": "MIODB",
-        "repositoryURL": "https://github.com/miolabs/MIODB.git",
-        "state": {
-          "branch": "QueryBuilderV2",
-          "revision": "45b19577fa5c1be11aee7e9a7fc986689fb0a5c1",
-          "version": null
-        }
-      },
-      {
-        "package": "swift-log",
-        "repositoryURL": "https://github.com/apple/swift-log.git",
-        "state": {
-          "branch": null,
-          "revision": "9cb486020ebf03bfa5b5df985387a14a98744537",
-          "version": "1.6.1"
-        }
+  "pins" : [
+    {
+      "identity" : "miocore",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/miolabs/MIOCore.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "d798e7d40413d40da3e6667ff3a9cd81f08ea712"
       }
-    ]
-  },
-  "version": 1
+    },
+    {
+      "identity" : "miodb",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/miolabs/MIODB.git",
+      "state" : {
+        "branch" : "QueryBuilderV2",
+        "revision" : "72234c57419d15ff13fbd8cda6f55844a221387a"
+      }
+    },
+    {
+      "identity" : "swift-log",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-log.git",
+      "state" : {
+        "revision" : "9cb486020ebf03bfa5b5df985387a14a98744537",
+        "version" : "1.6.1"
+      }
+    }
+  ],
+  "version" : 2
 }
