@@ -10,6 +10,9 @@ import Foundation
 import MIOCore
 import MIODB
 import CLibPQ
+import MIOCoreLogger
+
+let _log = MCLogger( label: "com.miolabs.db-postgresql")
 
 enum MIODBPostgreSQLError: Error {
     case fatalError( _ code:String, _ msg: String )
@@ -50,7 +53,8 @@ open class MIODBPostgreSQL: MIODB
         let status = PQstatus( _connection )
         if  status != CONNECTION_OK {
             _connection = nil
-            throw MIODBPostgreSQLError.fatalError("-1", "Could not connect to POSTGRESQL Database. Connection string: \(connectionString!)")
+//            throw MIODBPostgreSQLError.fatalError("-1", "Could not connect to POSTGRESQL Database. Connection string: \(connectionString!)")
+            throw MIODBPostgreSQLError.fatalError("-1", "Could not connect to POSTGRESQL Database.")
         }
         
         try super.connect(to_db)
@@ -87,11 +91,13 @@ open class MIODBPostgreSQL: MIODB
     @discardableResult open func _executeQueryString(_ query:String) throws -> [[String : Any]]? {
                 
         if ( PQstatus( _connection ) != CONNECTION_OK ) {
-            print( "[[FATAL ERROR]: Postgres connection was lost, re-connecting and crossing fingers")
+            _log.critical( "[FATAL ERROR]: Postgres connection was lost, re-connecting and crossing fingers" )
             disconnect()
             usleep( 500000 ) // 0.5 seconds
             try connect()
         }
+        
+        _log.debug( "\(query)" )
         
         let r = try query.withCString { query_cstr -> [[String : Any]] in
             let res = PQexec( _connection, query_cstr )
@@ -127,22 +133,25 @@ open class MIODBPostgreSQL: MIODB
                 let errorMessage = (scheme != nil ? "\(scheme!): " : "") + String(cString: PQresultErrorMessage(res)) + "\n" + query
                 let err_code = PQresultErrorField(res, 67 )
                 let code = err_code != nil ? String( cString: err_code! ) : "0"
+                _log.error( "MIODBPostgreSQL Error: \(errorMessage)" )
                 throw MIODBPostgreSQLError.fatalError(code, errorMessage)
                 
-            case PGRES_EMPTY_QUERY    : print("Empty query")
-            case PGRES_COPY_OUT       : print("Copy out")
-            case PGRES_COPY_IN        : print("Copy in")
-            case PGRES_BAD_RESPONSE   : print("Bad response")
-            case PGRES_NONFATAL_ERROR : print("Non fatal error")
-            case PGRES_COPY_BOTH      : print("Copy both")
-            case PGRES_SINGLE_TUPLE   : print("Single tupple")
+            case PGRES_EMPTY_QUERY    : _log.warning("Empty query")
+            case PGRES_COPY_OUT       : _log.warning("Copy out")
+            case PGRES_COPY_IN        : _log.warning("Copy in")
+            case PGRES_BAD_RESPONSE   : _log.warning("Bad response")
+            case PGRES_NONFATAL_ERROR : _log.warning("Non fatal error")
+            case PGRES_COPY_BOTH      : _log.warning("Copy both")
+            case PGRES_SINGLE_TUPLE   : _log.warning("Single tupple")
                 
-            default: print("Response not implemented.")
+            default: 
+                _log.warning("Response not implemented.")
             }
-            
+                                    
             return items
         }
-        
+                
+        _log.trace( "\(r)" )
         return r
     }
     
@@ -187,7 +196,7 @@ open class MIODBPostgreSQL: MIODB
         case 2278: // void
             ret = str
         default:
-            NSLog("Type not implemented. Fallback to string. type: \(type)")
+            _log.warning( "Type not implemented. Fallback to string. type: \(type)" )
             ret = str
         }
         
