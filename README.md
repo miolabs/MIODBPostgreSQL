@@ -4,7 +4,7 @@ PostgreSQL implementation for the MIODB ORM abstraction layer. This library enab
 
 ## Overview
 
-MIODBPostgreSQL provides a Swift interface for connecting to and working with PostgreSQL databases. It implements the MIODB ORM abstraction layer, allowing for seamless integration with the MIODB framework which is located at `../MIODB`.
+MIODBPostgreSQL provides a Swift interface for connecting to and working with PostgreSQL databases. It implements the MIODB ORM abstraction layer, allowing for seamless integration with the MIODB framework.
 
 ## Features
 
