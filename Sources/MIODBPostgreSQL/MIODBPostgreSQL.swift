@@ -20,7 +20,7 @@ extension MIODBPostgreSQLError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case let .fatalError(code, msg):
-            return "[[MIODBPostgreSQLError] Fatal error. Code: \(code) Message: \"\(msg)\"."
+            return "Fatal error. Code: \(code) Message: \"\(msg)\"."
         }
     }
 }
@@ -33,19 +33,20 @@ open class MIODBPostgreSQL: MIODB
     
     var _connection:OpaquePointer?
     var _connection_str: [CChar]?
-
+    var _db:String? = nil
+    
     deinit { disconnect() }
     
     open override func connect( _ to_db: String? = nil ) throws {
         if port == nil { port = defaultPort }
         if user == nil { user = defaultUser }
         
-        let final_db = to_db ?? database ?? defaultDatabase
+        _db = to_db ?? database
         // if database == nil { database = defaultDatabase }
         
         //let connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(database!) gssencmode='disable'"
-        Log.trace( "Connecting to POSTGRESQL Database. Connection string: \(host!):\(port!)/\(final_db)")
-        connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(final_db)"
+        Log.trace( "Connecting to POSTGRESQL Database. Connection string: \(host!):\(port!)/\(_db ?? defaultDatabase)")
+        connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(_db ?? defaultDatabase)"
         _connection_str = connectionString!.cString(using: .utf8)
         
         _connection = PQconnectdb( _connection_str )
@@ -53,7 +54,7 @@ open class MIODBPostgreSQL: MIODB
         if  status != CONNECTION_OK {
             _connection = nil
 //            throw MIODBPostgreSQLError.fatalError("-1", "Could not connect to POSTGRESQL Database. Connection string: \(connectionString!)")
-            Log.critical( "Could not connect to POSTGRESQL Database. host:\(host!), port: \(port!), dbname:\(final_db)")
+            Log.error( "Could not connect to POSTGRESQL Database. host:\(host!), port: \(port!), dbname:\(_db ?? defaultDatabase)")
             throw MIODBPostgreSQLError.fatalError("-1", "Could not connect to POSTGRESQL Database.")
         }
         
@@ -66,10 +67,12 @@ open class MIODBPostgreSQL: MIODB
 //    }
     
     open override func disconnect() {
+        super.disconnect( )
         if _connection != nil {
             PQfinish( _connection )
             _connection = nil
             _connection_str = nil
+            Log.trace( "Diconnecting to POSTGRESQL Database. Connection string: \(host!):\(port!)/\(_db ?? defaultDatabase)" )
         }
     }
     
@@ -91,7 +94,7 @@ open class MIODBPostgreSQL: MIODB
     @discardableResult open func _executeQueryString(_ query:String) throws -> [[String : Any]]? {
                 
         if ( PQstatus( _connection ) != CONNECTION_OK ) {
-            Log.error( "[FATAL ERROR]: Postgres connection was lost, re-connecting and crossing fingers" )
+            Log.error( "Postgres connection was lost, re-connecting and crossing fingers" )
             disconnect()
             usleep( 500000 ) // 0.5 seconds
             try connect()
@@ -133,7 +136,7 @@ open class MIODBPostgreSQL: MIODB
                 let errorMessage = (scheme != nil ? "\(scheme!): " : "") + String(cString: PQresultErrorMessage(res)) + "\n" + query
                 let err_code = PQresultErrorField(res, 67 )
                 let code = err_code != nil ? String( cString: err_code! ) : "0"
-                Log.debug( "MIODBPostgreSQL Error: \(errorMessage)" )
+                Log.debug( "\(errorMessage)" )
                 throw MIODBPostgreSQLError.fatalError(code, errorMessage)
                 
             case PGRES_EMPTY_QUERY    : Log.warning("Empty query")
