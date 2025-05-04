@@ -11,9 +11,11 @@ import MIODB
 
 open class MDBPostgreConnection : MDBConnection
 {
-    open override func create ( _ to_db: String?, id: Int = -1 ) throws -> MIODB {
+    open override func create ( _ to_db: String?, identifier: String? = nil, label: String? = nil ) throws -> MIODB {
         let db = MIODBPostgreSQL( connection: self )
-        try db.connect( to_db, id: id )
+        if let id = identifier { db.identifier = id }
+        if let lbl = label { db.label = lbl }
+        try db.connect( to_db )
         return db
     }
 }

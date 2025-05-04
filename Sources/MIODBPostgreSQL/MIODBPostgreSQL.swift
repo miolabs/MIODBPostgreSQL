@@ -37,9 +37,9 @@ open class MIODBPostgreSQL: MIODB
     
     deinit { disconnect() }
     
-    open override func connect( _ to_db: String? = nil, id:Int = -1 ) throws
+    open override func connect( _ to_db: String? = nil ) throws
     {
-        try super.connect(to_db, id: id)
+        try super.connect( to_db )
         
         if port == nil { port = defaultPort }
         if user == nil { user = defaultUser }
@@ -48,8 +48,9 @@ open class MIODBPostgreSQL: MIODB
         // if database == nil { database = defaultDatabase }
         
         //let connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(database!) gssencmode='disable'"
-        Log.debug( "ID: \(id). Connecting to POSTGRESQL Database. Connection string: \(host!):\(port!)/\(_db ?? defaultDatabase)")
-        connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(_db ?? defaultDatabase)"
+        Log.debug( "ID: \(identifier). Connecting to POSTGRESQL Database. Connection string: \(host!):\(port!)/\(_db ?? defaultDatabase)")
+        let app_name = ( label + ( scheme != nil ? "#" + scheme! : "" ) ).replacingOccurrences(of: "[^a-zA-Z0-9.\\_\\-#]+", with: "_", options: .regularExpression)
+        connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(_db ?? defaultDatabase) application_name = \(app_name)"
         _connection_str = connectionString!.cString(using: .utf8)
         
         _connection = PQconnectdb( _connection_str )
@@ -57,7 +58,7 @@ open class MIODBPostgreSQL: MIODB
         if  status != CONNECTION_OK {
             _connection = nil
 //            throw MIODBPostgreSQLError.fatalError("-1", "Could not connect to POSTGRESQL Database. Connection string: \(connectionString!)")
-            Log.error( "ID: \(id). Could not connect to POSTGRESQL Database. host:\(host!), port: \(port!), dbname:\(_db ?? defaultDatabase)")
+            Log.error( "ID: \(identifier). Could not connect to POSTGRESQL Database. host:\(host!), port: \(port!), dbname:\(_db ?? defaultDatabase)")
             throw MIODBPostgreSQLError.fatalError("-1", "Could not connect to POSTGRESQL Database.")
         }
     }
@@ -73,7 +74,7 @@ open class MIODBPostgreSQL: MIODB
             PQfinish( _connection )
             _connection = nil
             _connection_str = nil
-            Log.debug( "ID: \(id). Diconnecting to POSTGRESQL Database. Connection string: \(host!):\(port!)/\(_db ?? defaultDatabase)." )
+            Log.debug( "ID: \(identifier). Diconnecting to POSTGRESQL Database. Connection string: \(host!):\(port!)/\(_db ?? defaultDatabase)." )
         }
     }
     
@@ -95,13 +96,13 @@ open class MIODBPostgreSQL: MIODB
     @discardableResult open func _executeQueryString(_ query:String) throws -> [[String : Any]]? {
                 
         if ( PQstatus( _connection ) != CONNECTION_OK ) {
-            Log.error( "ID: \(id). Postgres connection was lost, re-connecting and crossing fingers" )
+            Log.error( "ID: \(identifier). Postgres connection was lost, re-connecting and crossing fingers" )
             disconnect()
             usleep( 500000 ) // 0.5 seconds
             try connect()
         }
         
-        Log.trace( "ID: \(id). QUERY: \(query)" )
+        Log.trace( "ID: \(identifier). QUERY: \(query)" )
         
         let r = try query.withCString { query_cstr -> [[String : Any]] in
             let res = PQexec( _connection, query_cstr )
@@ -137,7 +138,7 @@ open class MIODBPostgreSQL: MIODB
                 let errorMessage = (scheme != nil ? "\(scheme!): " : "") + String(cString: PQresultErrorMessage(res)) + "\n" + query
                 let err_code = PQresultErrorField(res, 67 )
                 let code = err_code != nil ? String( cString: err_code! ) : "0"
-                Log.trace( "ID: \(id). \(errorMessage)" )
+                Log.trace( "ID: \(identifier). \(errorMessage)" )
                 throw MIODBPostgreSQLError.fatalError(code, errorMessage)
                 
             case PGRES_EMPTY_QUERY    : Log.warning("Empty query")
@@ -149,13 +150,13 @@ open class MIODBPostgreSQL: MIODB
             case PGRES_SINGLE_TUPLE   : Log.warning("Single tupple")
                 
             default: 
-                Log.warning("ID: \(id). Response not implemented.")
+                Log.warning("ID: \(identifier). Response not implemented.")
             }
                                     
             return items
         }
                 
-        Log.trace( "ID: \(id). RESPONSE: \(r)" )
+        Log.trace( "ID: \(identifier). RESPONSE: \(r)" )
         return r
     }
     
@@ -200,7 +201,7 @@ open class MIODBPostgreSQL: MIODB
         case 2278: // void
             ret = str
         default:
-            Log.warning( "ID: \(id). Type not implemented. Fallback to string. type: \(type)" )
+            Log.warning( "ID: \(identifier). Type not implemented. Fallback to string. type: \(type)" )
             ret = str
         }
         
