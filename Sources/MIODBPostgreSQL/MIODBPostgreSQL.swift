@@ -63,11 +63,6 @@ open class MIODBPostgreSQL: MIODB
         }
     }
     
-//    open func connect(scheme:String?) throws {
-//        try connect()
-//        try changeScheme(scheme)
-//    }
-    
     open override func disconnect() {
         super.disconnect( )
         if _connection != nil {
@@ -214,8 +209,9 @@ open class MIODBPostgreSQL: MIODB
         if _connection == nil {
             throw MIODBPostgreSQLError.fatalError("-2","Could not change the scheme. The connection is nil")
         }
-                
-        try executeQueryString("SET search_path TO \(scheme!), public")
+         
+        let app_name = ( label + ( scheme != nil ? "#" + scheme! : "" ) ).replacingOccurrences(of: "[^a-zA-Z0-9.\\_\\-#]+", with: "_", options: .regularExpression)
+        try executeQueryString("SET search_path TO \(scheme!), public; SET application_name TO '\(app_name)'")
         try super.changeScheme(scheme)
     }
     
