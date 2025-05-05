@@ -21,6 +21,7 @@ MIODBPostgreSQL provides a Swift interface for connecting to and working with Po
 - Connection pooling support
 - Error handling
 - Logging integration with MIOCoreLogger
+- Configurable application_name through environment variables
 
 ## Requirements
 
@@ -125,6 +126,31 @@ let products = try db.executeString("SELECT * from products")
 ### Using with MIODB ORM
 
 MIODBPostgreSQL is designed to work with the MIODB ORM framework. See the MIODB documentation for more information on how to use the ORM features.
+
+### Configuring application_name
+
+PostgreSQL allows tracking connections with an `application_name` parameter. MIODBPostgreSQL provides flexible configuration options for this parameter:
+
+1. By default, the `application_name` is set to "mdb-postgresql"
+2. You can configure a custom name using the environment variable `MDB_POSTGRESQL_APPNAME`
+3. The environment variable supports two types of placeholders:
+   - `%ENV_VAR%`: Will be replaced with the value of the specified environment variable
+   - `{placeholder}`: Will be replaced with connection-specific values, where placeholder can be:
+     - `{host}`: The database host
+     - `{user}`: The database user
+     - `{schema}`: The current schema
+
+Example:
+```
+# Set application_name to "myapp-production-postgres-users"
+export MDB_POSTGRESQL_APPNAME="myapp-%ENV_MODE%-{host}-{schema}"
+export ENV_MODE="production"
+```
+
+This feature helps with:
+- Identifying connections in PostgreSQL server logs
+- Monitoring database activity by application
+- Debugging connection issues
 
 ## License
 
