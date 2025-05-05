@@ -205,14 +205,59 @@ open class MIODBPostgreSQL: MIODB
     
     open override func changeScheme(_ scheme:String?) throws {
         if scheme == nil { return }
+        try super.changeScheme( scheme )
         
         if _connection == nil {
             throw MIODBPostgreSQLError.fatalError("-2","Could not change the scheme. The connection is nil")
         }
-         
-        let app_name = ( label + ( scheme != nil ? "#" + scheme! : "" ) ).replacingOccurrences(of: "[^a-zA-Z0-9.\\_\\-#]+", with: "_", options: .regularExpression)
-        try executeQueryString("SET search_path TO \(scheme!), public; SET application_name TO '\(app_name)'")
-        try super.changeScheme(scheme)
+
+        try executeQueryString("SET search_path TO \(scheme!), public; SET application_name TO '\(app_name())'")
+    }
+    
+    var app_name_env_var:String? = nil
+    var app_name_var_ids:[String] = []
+    func app_name() -> String {
+        
+        func ids_from_var_name( _ value: String, _ prefix:String, _ suffix:String ) -> [String] {
+            // replace all enviroment var with prefix and suffic of char %
+            let pattern = "\(prefix)(\\w+)\(suffix)"
+            let regex = try! NSRegularExpression(pattern: pattern)
+            let nsrange = NSRange(value.startIndex..<value.endIndex, in: value)
+            let matches = regex.matches(in: value, range: nsrange)
+
+            return matches.compactMap { match -> String? in
+                guard let range = Range(match.range(at: 1), in: value) else { return nil }
+                return String(value[range])
+            }
+        }
+        
+        if app_name_env_var == nil {
+            if var value = MCEnvironmentVar("MDB_POSTGRESQL_APPNAME") {
+                // replace all enviroment var with prefix and suffic of char %
+                let env_ids = ids_from_var_name( value, "%", "%")
+                for i in env_ids {
+                    let env_var_name = MCEnvironmentVar( i ) ?? ""
+                    value = value.replacingOccurrences( of: "%\(i)%", with: env_var_name )
+                }
+                
+                app_name_var_ids = ids_from_var_name( value, "\\{", "\\}")
+                app_name_env_var = value
+            }
+            else { app_name_env_var = "mdb-postgresql" }
+        }
+        
+        var value = app_name_env_var!
+        
+        for i in app_name_var_ids {
+            switch i {
+            case "host"  : value = value.replacingOccurrences( of: "{\(i)}", with: host ?? "" )
+            case "user"  : value = value.replacingOccurrences( of: "{\(i)}", with: user ?? "" )
+            case "schema": value = value.replacingOccurrences( of: "{\(i)}", with: scheme ?? "" )
+            default: break
+            }
+        }
+                    
+        return value
     }
     
 }
