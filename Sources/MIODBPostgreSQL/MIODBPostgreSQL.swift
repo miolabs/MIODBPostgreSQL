@@ -213,7 +213,7 @@ open class MIODBPostgreSQL: MIODB
             throw MIODBPostgreSQLError.fatalError("-2","Could not change the scheme. The connection is nil")
         }
 
-        try executeQueryString("SET search_path TO \(scheme!), public")
+        try executeQueryString("SET search_path TO \(scheme!), public; SET application_name TO '\(app_name())'")
     }
     
     var app_name_env_var:String? = nil
