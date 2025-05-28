@@ -39,8 +39,6 @@ open class MIODBPostgreSQL: MIODB
     
     open override func connect( _ to_db: String? = nil ) throws
     {
-        try super.connect( to_db )
-        
         if port == nil { port = defaultPort }
         if user == nil { user = defaultUser }
         
@@ -48,9 +46,10 @@ open class MIODBPostgreSQL: MIODB
         // if database == nil { database = defaultDatabase }
         
         //let connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(database!) gssencmode='disable'"
-        Log.debug( "ID: \(identifier). Connecting to POSTGRESQL Database. Connection string: \(host!):\(port!)/\(_db ?? defaultDatabase)")
+        Log.debug( "ID: \(identifier). Connecting to POSTGRESQL Database. Connection string: \(host!):\(port!)/\(_db ?? defaultDatabase) \(scheme ?? "")")
         let app_name = ( label + ( scheme != nil ? "#" + scheme! : "" ) ).replacingOccurrences(of: "[^a-zA-Z0-9.\\_\\-#]+", with: "_", options: .regularExpression)
-        connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(_db ?? defaultDatabase) application_name = \(app_name)"
+        let options = scheme != nil ? " options='-c search_path=\(scheme!),public'" : ""
+        connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(_db ?? defaultDatabase) application_name = \(app_name)\(options)"
         _connection_str = connectionString!.cString(using: .utf8)
         
         _connection = PQconnectdb( _connection_str )
@@ -58,19 +57,22 @@ open class MIODBPostgreSQL: MIODB
         if  status != CONNECTION_OK {
             _connection = nil
 //            throw MIODBPostgreSQLError.fatalError("-1", "Could not connect to POSTGRESQL Database. Connection string: \(connectionString!)")
-            Log.error( "ID: \(identifier). Could not connect to POSTGRESQL Database. host:\(host!), port: \(port!), dbname:\(_db ?? defaultDatabase)")
+            Log.error( "ID: \(identifier). Could not connect to POSTGRESQL Database. host:\(host!), port: \(port!), dbname:\(_db ?? defaultDatabase) \(scheme ?? "")")
             throw MIODBPostgreSQLError.fatalError("-1", "Could not connect to POSTGRESQL Database.")
         }
+        
+        try super.connect( to_db )
     }
     
     open override func disconnect() {
-        super.disconnect( )
         if _connection != nil {
             PQfinish( _connection )
             _connection = nil
             _connection_str = nil
             Log.debug( "ID: \(identifier). Diconnecting to POSTGRESQL Database. Connection string: \(host!):\(port!)/\(_db ?? defaultDatabase)." )
         }
+        
+        super.disconnect( )
     }
     
     @discardableResult open override func executeQueryString(_ query:String) throws -> [[String : Any]]? {
@@ -211,7 +213,7 @@ open class MIODBPostgreSQL: MIODB
             throw MIODBPostgreSQLError.fatalError("-2","Could not change the scheme. The connection is nil")
         }
 
-        try executeQueryString("SET search_path TO \(scheme!), public; SET application_name TO '\(app_name())'")
+        try executeQueryString("SET search_path TO \(scheme!), public")
     }
     
     var app_name_env_var:String? = nil
