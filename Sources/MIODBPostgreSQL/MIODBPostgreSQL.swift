@@ -70,9 +70,8 @@ open class MIODBPostgreSQL: MIODB
             _connection = nil
             _connection_str = nil
             Log.debug( "ID: \(identifier). Diconnecting to POSTGRESQL Database. Connection string: \(host!):\(port!)/\(_db ?? defaultDatabase)." )
+            super.disconnect( )
         }
-        
-        super.disconnect( )
     }
     
     @discardableResult open override func executeQueryString(_ query:String) throws -> [[String : Any]]? {
