@@ -12,6 +12,7 @@ import MIODB
 import CLibPQ
 import MIOCoreLogger
 
+
 enum MIODBPostgreSQLError: Error {
     case fatalError( _ code:String, _ msg: String )
 }
@@ -44,9 +45,8 @@ open class MIODBPostgreSQL: MIODB
         
         _db = to_db ?? database
         // if database == nil { database = defaultDatabase }
-        
-        //let connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(database!) gssencmode='disable'"
-        Log.debug( "ID: \(identifier). Connecting to POSTGRESQL Database. Connection string: \(host!):\(port!)/\(_db ?? defaultDatabase) \(scheme ?? "")")
+                
+        Log.debug( "ID: \(identifier). Connecting to POSTGRESQL Database. Connection string: \(host!):\(port!)/\(_db ?? defaultDatabase) \(scheme ?? "")" )
         let app_name = ( label + ( scheme != nil ? "#" + scheme! : "" ) ).replacingOccurrences(of: "[^a-zA-Z0-9.\\_\\-#]+", with: "_", options: .regularExpression)
         let options = scheme != nil ? " options='-c search_path=\(scheme!),public'" : ""
         connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(_db ?? defaultDatabase) application_name = \(app_name)\(options)"
@@ -145,7 +145,7 @@ open class MIODBPostgreSQL: MIODB
             case PGRES_COPY_BOTH      : Log.warning("Copy both")
             case PGRES_SINGLE_TUPLE   : Log.warning("Single tupple")
                 
-            default: 
+            default:
                 Log.warning("ID: \(identifier). Response not implemented.")
             }
                                     
@@ -260,6 +260,79 @@ open class MIODBPostgreSQL: MIODB
                     
         return value
     }
-    
+
+    // MARK: - Diacritic-insensitive search helpers
+
+    /// Executes a query with diacritic-insensitive text search using unaccent extension
+    /// - Parameters:
+    ///   - table: The table name to search in
+    ///   - column: The column name to search
+    ///   - searchText: The text to search for
+    ///   - exactMatch: If true, uses = operator, otherwise uses ILIKE for partial matching
+    /// - Returns: Query results
+    @discardableResult open func searchIgnoringDiacritics(
+        table: String,
+        column: String,
+        searchText: String,
+        exactMatch: Bool = false
+    ) throws -> [[String : Any]]? {
+        let escapedSearchText = searchText.replacingOccurrences(of: "'", with: "''")
+        let sqlOperator = exactMatch ? "=" : "ILIKE"
+        let searchPattern = exactMatch ? "'\(escapedSearchText)'" : "'%\(escapedSearchText)%'"
+
+        let query = """
+            SELECT * FROM \(table)
+            WHERE unaccent(\(column)) \(sqlOperator) unaccent(\(searchPattern))
+            """
+
+        return try executeQueryString(query)
+    }
+
+    /// Ensures the unaccent extension is available in the database
+    /// Call this once after connecting to enable diacritic-insensitive searches
+    open func enableUnaccentExtension() throws {
+        _ = try executeQueryString("CREATE EXTENSION IF NOT EXISTS unaccent")
+    }
+
+    /// Creates a custom text search configuration for diacritic-insensitive full-text search
+    /// - Parameter configName: Name for the custom configuration (default: "simple_unaccent")
+    open func createUnaccentTextSearchConfig(configName: String = "simple_unaccent") throws {
+        let queries = [
+            "CREATE TEXT SEARCH CONFIGURATION \(configName) (COPY = simple)",
+            """
+            ALTER TEXT SEARCH CONFIGURATION \(configName)
+              ALTER MAPPING FOR asciiword, asciihword, hword_asciipart, word, hword, hword_part
+              WITH unaccent, simple
+            """
+        ]
+
+        for query in queries {
+            _ = try executeQueryString(query)
+        }
+    }
+
+    /// Performs full-text search ignoring diacritics
+    /// - Parameters:
+    ///   - table: The table name to search in
+    ///   - column: The column name to search
+    ///   - searchText: The text to search for
+    ///   - configName: The text search configuration to use
+    /// - Returns: Query results
+    @discardableResult open func fullTextSearchIgnoringDiacritics(
+        table: String,
+        column: String,
+        searchText: String,
+        configName: String = "simple_unaccent"
+    ) throws -> [[String : Any]]? {
+        let escapedSearchText = searchText.replacingOccurrences(of: "'", with: "''")
+
+        let query = """
+            SELECT * FROM \(table)
+            WHERE to_tsvector('\(configName)', \(column)) @@ to_tsquery('\(configName)', '\(escapedSearchText)')
+            """
+
+        return try executeQueryString(query)
+    }
+
 }
 
