@@ -174,8 +174,8 @@ open class MIODBPostgreSQL: MIODB
         case 1700, 700, 701, 790: // numeric, float4, float8, money
             ret = Decimal( string: str )!
             
-        case 1114: ret = MIOCoreDate( fromString: str ) // Timestamp
-        case 1184: ret = MIOCoreDate( fromString: str ) // Timestamp Z
+        case 1114: ret = convert_date( str, false ) // Timestamp
+        case 1184: ret = convert_date( str, true ) // Timestamp Z
         case 1083: ret = str // TODO: Time
 
         case 1043: // varchar
@@ -202,6 +202,29 @@ open class MIODBPostgreSQL: MIODB
         }
         
         return ret!
+    }
+    
+    var date_formatter:ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+    
+    func convert_date( _ str: String, _ timeZone: Bool ) -> Date? {
+        let isoString = (timeZone ? str : str.appending( "+00"))
+            .replacingOccurrences(of: " ", with: "T")
+            .replacingOccurrences(of: "+00", with: "+00:00")
+        var d = date_formatter.date(from: isoString)
+        if d == nil {
+            Log.debug( "ID: \(identifier). Fallback to String. date: \(isoString)" )
+            d = MIOCoreDate(fromString: str)
+        }
+        
+        if d == nil {
+            Log.warning( "ID: \(identifier). date: \(isoString) -> \(String(describing: d))")
+        }
+        
+        return d
     }
     
     open override func changeScheme(_ scheme:String?) throws {
