@@ -214,17 +214,13 @@ open class MIODBPostgreSQL: MIODB
         let isoString = (timeZone ? str : str.appending( "+00"))
             .replacingOccurrences(of: " ", with: "T")
             .replacingOccurrences(of: "+00", with: "+00:00")
-        var d = date_formatter.date(from: isoString)
-        if d == nil {
+        if let d = date_formatter.microsecondsDate(from: isoString) { return d }
+        if let d = MIOCoreDate(fromString: str) {
             Log.debug( "ID: \(identifier). Fallback to String. date: \(isoString)" )
-            d = MIOCoreDate(fromString: str)
+            return d
         }
-        
-        if d == nil {
-            Log.warning( "ID: \(identifier). date: \(isoString) -> \(String(describing: d))")
-        }
-        
-        return d
+        Log.warning( "ID: \(identifier). date: \(isoString) -> Can't be converted to Date" )
+        return nil
     }
     
     open override func changeScheme(_ scheme:String?) throws {
