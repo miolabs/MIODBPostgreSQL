@@ -125,7 +125,8 @@ open class MIODBPostgreSQL: MIODB
                         let type = PQftype(res, col)
                         let value = PQgetvalue(res, row, col)
                         
-                        item[colname] = try convert(value: value!, withType: type)
+                        let (c,v) = queryDelegate?.customValueConvertion(field: colname, value: value!) ?? (false,nil)
+                        item[colname] = c == true ? v : try convert(value: value!, withType: type)
                     }
                     items.append(item)
                 }
