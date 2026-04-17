@@ -1,0 +1,50 @@
+// =============================================================================
+// libpq.xcconfig
+// MIODBPostgreSQL — Xcode Framework Configuration
+//
+// Resolves libpq headers and libraries from Homebrew for both Apple Silicon
+// (/opt/homebrew) and Intel (/usr/local) Macs. Xcode silently ignores paths
+// that don't exist, so both are safe to include unconditionally.
+// =============================================================================
+
+
+// -----------------------------------------------------------------------------
+// Homebrew prefixes
+// -----------------------------------------------------------------------------
+HOMEBREW_PREFIX_ARM   = /opt/homebrew
+HOMEBREW_PREFIX_INTEL = /usr/local
+
+
+// -----------------------------------------------------------------------------
+// libpq include / library paths
+// -----------------------------------------------------------------------------
+LIBPQ_INCLUDE_ARM     = $(HOMEBREW_PREFIX_ARM)/opt/libpq/include
+LIBPQ_INCLUDE_INTEL   = $(HOMEBREW_PREFIX_INTEL)/opt/libpq/include
+
+LIBPQ_LIB_ARM         = $(HOMEBREW_PREFIX_ARM)/opt/libpq/lib
+LIBPQ_LIB_INTEL       = $(HOMEBREW_PREFIX_INTEL)/opt/libpq/lib
+
+
+// -----------------------------------------------------------------------------
+// Build settings — consumed by the framework target
+// -----------------------------------------------------------------------------
+
+// Headers: libpq-fe.h and friends
+HEADER_SEARCH_PATHS   = $(LIBPQ_INCLUDE_ARM) $(LIBPQ_INCLUDE_INTEL)
+
+// Libraries: libpq.dylib / libpq.a
+LIBRARY_SEARCH_PATHS  = $(LIBPQ_LIB_ARM) $(LIBPQ_LIB_INTEL)
+
+// CLibPQ Swift module (makes `import CLibPQ` work inside the framework target)
+SWIFT_INCLUDE_PATHS   = $(SRCROOT)/Sources/CLibPQ
+
+// Link against libpq
+OTHER_LDFLAGS         = -lpq
+
+
+// -----------------------------------------------------------------------------
+// Platform — macOS only (libpq from Homebrew has no iOS/visionOS slices)
+// -----------------------------------------------------------------------------
+SUPPORTED_PLATFORMS          = macosx
+SDKROOT                      = macosx
+MACOSX_DEPLOYMENT_TARGET     = 12.0

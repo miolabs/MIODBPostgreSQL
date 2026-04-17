@@ -9,7 +9,7 @@
 import Foundation
 import MIOCore
 import MIODB
-import CLibPQ
+@_implementationOnly import CLibPQ
 import MIOCoreLogger
 
 
