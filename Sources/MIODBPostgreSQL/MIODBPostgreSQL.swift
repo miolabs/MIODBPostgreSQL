@@ -49,7 +49,16 @@ open class MIODBPostgreSQL: MIODB
         Log.debug( "ID: \(identifier). Connecting to POSTGRESQL Database. Connection string: \(host!):\(port!)/\(_db ?? defaultDatabase) \(scheme ?? "")" )
         let app_name = ( label + ( scheme != nil ? "#" + scheme! : "" ) ).replacingOccurrences(of: "[^a-zA-Z0-9.\\_\\-#]+", with: "_", options: .regularExpression)
         let options = scheme != nil ? " options='-c search_path=\(scheme!),public'" : ""
-        connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(_db ?? defaultDatabase) application_name = \(app_name)\(options)"
+        // connect_timeout: bound the TCP connect attempt. Without this, libpq
+        // will wait for the OS-level TCP timeout (~75-130s on Linux) when the
+        // remote is unreachable, pinning the calling thread for that entire
+        // duration. With many concurrent connect attempts this saturates the
+        // server's NIOThreadPool.
+        // keepalives: detect silently-dropped connections (NAT timeouts,
+        // middleboxes, DB restarts) within ~60s instead of waiting until the
+        // next query fails arbitrarily long after the connection went bad.
+        let timeout_opts = " connect_timeout=5 keepalives=1 keepalives_idle=30 keepalives_interval=10 keepalives_count=3"
+        connectionString = "host = \(host!) port = \(port!) user = \(user!) password = \(password!) dbname = \(_db ?? defaultDatabase) application_name = \(app_name)\(timeout_opts)\(options)"
         _connection_str = connectionString!.cString(using: .utf8)
         
         _connection = PQconnectdb( _connection_str )
@@ -60,8 +69,17 @@ open class MIODBPostgreSQL: MIODB
             Log.error( "ID: \(identifier). Could not connect to POSTGRESQL Database. host:\(host!), port: \(port!), dbname:\(_db ?? defaultDatabase) \(scheme ?? "")")
             throw MIODBPostgreSQLError.fatalError("-1", "Could not connect to POSTGRESQL Database.")
         }
-        
+
         try super.connect( to_db )
+
+        // statement_timeout: bound query execution time at the server side.
+        // Without this, a query that hangs (advisory lock contention, slow
+        // query plan, etc.) holds the calling thread until the client gives
+        // up, which is never. 30s is a generous default; long-running
+        // operations (migrations, bulk imports) should override per-session.
+        // Configurable via MDB_POSTGRESQL_STATEMENT_TIMEOUT env var.
+        let stmt_timeout = MCEnvironmentVar( "MDB_POSTGRESQL_STATEMENT_TIMEOUT" ) ?? "30s"
+        _ = try? executeQueryString( "SET statement_timeout = '\(stmt_timeout)'" )
     }
     
     open override func disconnect() {
