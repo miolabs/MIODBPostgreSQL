@@ -78,7 +78,7 @@ open class MIODBPostgreSQL: MIODB
         // up, which is never. 30s is a generous default; long-running
         // operations (migrations, bulk imports) should override per-session.
         // Configurable via MDB_POSTGRESQL_STATEMENT_TIMEOUT env var.
-        let stmt_timeout = MCEnvironmentVar( "MDB_POSTGRESQL_STATEMENT_TIMEOUT" ) ?? "10min"
+        let stmt_timeout = MCEnvironmentVar( "MDB_POSTGRESQL_STATEMENT_TIMEOUT" ) ?? "30s"
         _ = try? executeQueryString( "SET statement_timeout = '\(stmt_timeout)'" )
     }
     
