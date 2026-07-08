@@ -156,11 +156,16 @@ open class MIODBPostgreSQL: MIODB
             return (value[0] == 116) as Bool
         }
 
-        // Integers parse straight off the C buffer — no String round-trip.
+        // Integers, timestamps and dates parse straight off the C buffer —
+        // no String round-trip. Timestamps that don't match the ISO wire
+        // format (BC dates, infinity, non-ISO datestyle) fall through to the
+        // formatter-based path below.
         switch type {
         case 20: return strtoll( value, nil, 10 )                          // Int8
         case 23: return Int32( truncatingIfNeeded: strtol( value, nil, 10 ) ) // Int4
         case 21: return Int16( truncatingIfNeeded: strtol( value, nil, 10 ) ) // Int2
+        case 1114, 1184, 1082: // Timestamp, Timestamp Z, Date
+            if let d = MDBPostgreSQLParseTimestamp( value ) { return d }
         default: break
         }
 
