@@ -28,7 +28,37 @@ final class MIODBPostgreSQLTests: XCTestCase {
         XCTAssert( found_key )
     }
 
+    func testLazyResultSet() {
+        let host_key = ProcessInfo.processInfo.environment["HOST"] ?? ""
+        let user_key = ProcessInfo.processInfo.environment["USER"] ?? ""
+        let pass_key = ProcessInfo.processInfo.environment["PASS"] ?? ""
+        let db_key   = ProcessInfo.processInfo.environment["DB"] ?? ""
+        let sch_key   = ProcessInfo.processInfo.environment["SCHEMA"] ?? ""
+
+        let db = MIODBPostgreSQL(host: host_key, user: user_key, password: pass_key, database: db_key, scheme: "_" + sch_key.replacing("-", with: "") )
+        var found_key = false
+        do {
+            let result = try db.executeQuery( "select * from server_status" )
+            XCTAssert( result.columns.contains( "key" ) )
+            for row in result {
+                // Only the accessed cells get converted
+                if row.string( "key" ) == "sync_files" { found_key = true }
+            }
+            // Dictionary-style access still works and preserves NSNull semantics
+            if let first = result.first {
+                XCTAssertNotNil( first["key"] )
+                XCTAssertNil( first["column_that_does_not_exist"] )
+            }
+        }
+        catch {
+            print( "\(error.localizedDescription )" )
+        }
+
+        XCTAssert( found_key )
+    }
+
     static var allTests = [
         ("testConnection", testConnection),
+        ("testLazyResultSet", testLazyResultSet),
     ]
 }
