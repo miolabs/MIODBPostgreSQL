@@ -12,12 +12,11 @@ final class MIODBPostgreSQLTests: XCTestCase {
         let db = MIODBPostgreSQL(host: host_key, user: user_key, password: pass_key, database: db_key, scheme: "_" + sch_key.replacing("-", with: "") )
         var found_key = false
         do {
-            if let rows = try db.executeQueryString( "select * from server_status" ) {
-                for r in rows {
-                    if let key = r["key"] as? String {
-                        if key == "sync_files" { found_key = true }
-                        print( "# \( key )\t\( r["server_id"]! )\t\( r["value"]! )\t\( r["processing"]! )")
-                    }
+            let rows = try db.executeQuery( "select * from server_status" ).dictionaries()
+            for r in rows {
+                if let key = r["key"] as? String {
+                    if key == "sync_files" { found_key = true }
+                    print( "# \( key )\t\( r["server_id"]! )\t\( r["value"]! )\t\( r["processing"]! )")
                 }
             }
         }
@@ -43,6 +42,11 @@ final class MIODBPostgreSQLTests: XCTestCase {
             for row in result {
                 // Only the accessed cells get converted
                 if row.string( "key" ) == "sync_files" { found_key = true }
+            }
+            // Throwing, non-optional accessors
+            if let first = result.first {
+                XCTAssertNoThrow( try first.stringValue( "key" ) )
+                XCTAssertThrowsError( try first.stringValue( "column_that_does_not_exist" ) )
             }
             // Dictionary-style access still works and preserves NSNull semantics
             if let first = result.first {

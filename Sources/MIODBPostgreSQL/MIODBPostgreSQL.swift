@@ -94,8 +94,7 @@ open class MIODBPostgreSQL: MIODB
 
     /// Executes a query and returns a lazy result set. Rows keep the raw
     /// server response and convert each cell to its Swift value only when it
-    /// is accessed, preserving the column order of the query. Prefer this
-    /// over `executeQueryString` when not every column of every row is read.
+    /// is accessed, preserving the column order of the query.
     @discardableResult open override func executeQuery(_ query:String) throws -> MDBPostgreSQLResultSet {
         queryWillExecute() // To notify the pool idle time out wher about to start
 
