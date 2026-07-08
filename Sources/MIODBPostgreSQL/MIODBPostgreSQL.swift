@@ -164,50 +164,58 @@ open class MIODBPostgreSQL: MIODB
         default: break
         }
 
-        var ret:Any?
         let str = String(cString: value)
 
-        switch type {
-        // "char" (OID 18) is a 1-byte CHARACTER, not a number — the catalogs
-        // use it as an enum letter (e.g. pg_constraint.contype = 'c', 'p', 'f').
-        // Keep the numeric conversion for digit values, but fall back to the
-        // string instead of crashing on non-numeric characters.
-        case 18: ret = MIOCoreInt8Value( str ) ?? str
-            
-        case 1700, 700, 701, 790: // numeric, float4, float8, money
-            // 'NaN' / 'Infinity' are valid float values but not valid Decimals
-            ret = Decimal( string: str )
-            
-        case 1114: ret = convert_date( str, false ) // Timestamp
-        case 1184: ret = convert_date( str, true ) // Timestamp Z
-        case 1083: ret = str // TODO: Time
-
-        case 1043: // varchar
-            ret = str
-        case 114, 3802: // json, jsonb (= transformable for us)
-            ret = try JSONSerialization.jsonObject(with: str.data(using: .utf8)!, options: [.allowFragments] )
-        case 3807: // json binary array
-            ret = try JSONSerialization.jsonObject(with: str.data(using: .utf8)!, options: [.allowFragments] )
-
-        case 2950: // UUID
-            ret = UUID( uuidString: str )
-            
-        case 25,19: // Text, Name(used when getting information from the DB as which contraints/indices/etc has)
-            ret = str
-            
-        case 1082: // date
-            ret = MIOCoreDate( fromString: str )
-            
-        case 2278: // void
-            ret = str
-        default:
-            Log.warning( "ID: \(identifier). Type not implemented. Fallback to string. type: \(type)" )
-            ret = str
+        // Strict contract: every OID maps to exactly one Swift type, and an
+        // unparseable value throws instead of degrading to the raw string.
+        // Consumers can rely on the cell type without defensive re-parsing.
+        func conversionFailed ( _ typeName: String ) -> MDBError {
+            Log.error( "ID: \(identifier). Value \"\(str)\" can't be converted to \(typeName). OID: \(type)" )
+            return MDBError.conversionFailed( typeName, str )
         }
 
-        // Unparseable dates / UUIDs / decimals fall back to the raw string
-        // instead of crashing the client.
-        return ret ?? str
+        switch type {
+        // "char" (OID 18) is a 1-byte CHARACTER — the catalogs use it as an
+        // enum letter (e.g. pg_constraint.contype = 'c', 'p', 'f'), so it is
+        // always text, never a number.
+        case 18: return str
+
+        case 1700, 700, 701, 790: // numeric, float4, float8, money
+            // 'NaN' is a valid float value but not a valid Decimal literal
+            if str == "NaN" { return Decimal.nan }
+            guard let d = Decimal( string: str ) else { throw conversionFailed( "Decimal" ) }
+            return d
+
+        case 1114: // Timestamp
+            guard let d = convert_date( str, false ) else { throw conversionFailed( "Date" ) }
+            return d
+        case 1184: // Timestamp Z
+            guard let d = convert_date( str, true ) else { throw conversionFailed( "Date" ) }
+            return d
+        case 1083: return str // TODO: Time
+
+        case 1043: // varchar
+            return str
+        case 114, 3802, 3807: // json, jsonb (= transformable for us), jsonb array
+            return try JSONSerialization.jsonObject(with: str.data(using: .utf8)!, options: [.allowFragments] )
+
+        case 2950: // UUID
+            guard let u = UUID( uuidString: str ) else { throw conversionFailed( "UUID" ) }
+            return u
+
+        case 25,19: // Text, Name(used when getting information from the DB as which contraints/indices/etc has)
+            return str
+
+        case 1082: // date
+            guard let d = MIOCoreDate( fromString: str ) else { throw conversionFailed( "Date" ) }
+            return d
+
+        case 2278: // void
+            return str
+        default:
+            Log.warning( "ID: \(identifier). Type not implemented. Fallback to string. type: \(type)" )
+            return str
+        }
     }
     
     var date_formatter:ISO8601DateFormatter = {
