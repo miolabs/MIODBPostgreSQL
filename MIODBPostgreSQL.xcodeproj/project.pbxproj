@@ -12,6 +12,7 @@
 		146A06242F8A4C2D00D24EE7 /* shim.h in Headers */ = {isa = PBXBuildFile; fileRef = 146A061D2F8A4C2D00D24EE7 /* shim.h */; };
 		146A06352F8A4CC700D24EE7 /* MIODB.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 146A06342F8A4CC700D24EE7 /* MIODB.framework */; };
 		147288E82FFDADD0000FF68C /* MDBPostgreSQLResultSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 147288E72FFDADD0000FF68C /* MDBPostgreSQLResultSet.swift */; };
+		147288EB2FFDAEE0000FF68C /* MDBPostgreSQLTimestamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 147288EA2FFDAEE0000FF68C /* MDBPostgreSQLTimestamp.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -23,6 +24,7 @@
 		146A06342F8A4CC700D24EE7 /* MIODB.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = MIODB.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		146A06392F8A4FD100D24EE7 /* libpq.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = libpq.xcconfig; sourceTree = "<group>"; };
 		147288E72FFDADD0000FF68C /* MDBPostgreSQLResultSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MDBPostgreSQLResultSet.swift; sourceTree = "<group>"; };
+		147288EA2FFDAEE0000FF68C /* MDBPostgreSQLTimestamp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MDBPostgreSQLTimestamp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -70,6 +72,7 @@
 			isa = PBXGroup;
 			children = (
 				147288E72FFDADD0000FF68C /* MDBPostgreSQLResultSet.swift */,
+				147288EA2FFDAEE0000FF68C /* MDBPostgreSQLTimestamp.swift */,
 				146A061F2F8A4C2D00D24EE7 /* MIODBPostgreConnection.swift */,
 				146A06202F8A4C2D00D24EE7 /* MIODBPostgreSQL.swift */,
 			);
@@ -179,6 +182,7 @@
 				146A06222F8A4C2D00D24EE7 /* MIODBPostgreSQL.swift in Sources */,
 				146A06232F8A4C2D00D24EE7 /* MIODBPostgreConnection.swift in Sources */,
 				147288E82FFDADD0000FF68C /* MDBPostgreSQLResultSet.swift in Sources */,
+				147288EB2FFDAEE0000FF68C /* MDBPostgreSQLTimestamp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
