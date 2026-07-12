@@ -20,8 +20,7 @@ import MIODB
 /// The underlying `PGresult` is independent of the connection socket: the
 /// connection can be closed, reused or reconnected while a result set is
 /// still alive. The result set does keep the `MIODBPostgreSQL` instance
-/// alive, because value conversion (the `convert` method and the
-/// `queryDelegate` custom conversions) belongs to it.
+/// alive, because value conversion (the `convert` method) belongs to it.
 public final class MDBPostgreSQLResultSet : MDBResultSet
 {
     let column_types: [Oid]
@@ -77,11 +76,6 @@ public final class MDBPostgreSQLResultSet : MDBResultSet
         if PQgetisnull( res, r, c ) == 1 { return NSNull() }
 
         guard let raw = PQgetvalue( res, r, c ) else { return NSNull() }
-
-        if let delegate = db.queryDelegate {
-            let (converted, v) = delegate.customValueConvertion( field: columns[ col ], value: raw )
-            if converted { return v }
-        }
 
         return try db.convert( value: raw, withType: column_types[ col ] )
     }
