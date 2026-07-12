@@ -181,7 +181,7 @@ open class MIODBPostgreSQL: MIODB
         case 23: return Int32( truncatingIfNeeded: strtol( value, nil, 10 ) ) // Int4
         case 21: return Int16( truncatingIfNeeded: strtol( value, nil, 10 ) ) // Int2
         case 1114, 1184, 1082: // Timestamp, Timestamp Z, Date
-            if let d = MDBPostgreSQLParseTimestamp( value ) { return d }
+            if let d = MDBSQLParseTimestamp( value ) { return d }
         default: break
         }
 
