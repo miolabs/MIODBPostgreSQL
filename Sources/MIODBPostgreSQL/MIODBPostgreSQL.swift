@@ -92,6 +92,22 @@ open class MIODBPostgreSQL: MIODB
         }
     }
 
+    /// Large multi-row inserts run through COPY FROM STDIN instead of a
+    /// multi-VALUES INSERT (see MIODBPostgreSQL+Copy.swift). Applies only when
+    /// there is no RETURNING clause and every value has a plain typed storage;
+    /// everything else falls through to the regular path.
+    @discardableResult open override func execute(_ query: MDBQuery ) throws -> MDBResultSet {
+        if MIODBPostgreSQL.copyThreshold > 0,
+           query.queryType == .MULTI_INSERT,
+           query.returningRaw().isEmpty,
+           query.multiValues.count >= MIODBPostgreSQL.copyThreshold,
+           copyCanEncode( query )
+        {
+            return try copyInsert( query )
+        }
+        return try super.execute( query )
+    }
+
     /// Executes a query and returns a lazy result set. Rows keep the raw
     /// server response and convert each cell to its Swift value only when it
     /// is accessed, preserving the column order of the query.
