@@ -26,7 +26,7 @@ extension MIODBPostgreSQLError: LocalizedError {
     }
 }
 
-open class MIODBPostgreSQL: MIODB
+open class MIODBPostgreSQL: MIONetworkDB
 {
     let defaultPort:Int32 = 5432
     let defaultUser = "root"
