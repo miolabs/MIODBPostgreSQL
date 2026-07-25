@@ -9,7 +9,7 @@ import Foundation
 import MIODB
 
 
-open class MDBPostgreConnection : MDBConnection
+open class MDBPostgreConnection : MDBNetworkConnection
 {
     open override func create ( _ to_db: String?, identifier: String? = nil, label: String? = nil, delegate: MDBDelegate? = nil ) throws -> MIODB {
         let db = MIODBPostgreSQL( connection: self )
