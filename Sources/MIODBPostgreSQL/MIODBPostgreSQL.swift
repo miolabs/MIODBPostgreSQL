@@ -33,6 +33,12 @@ open class MIODBPostgreSQL: MIONetworkDB
     let defaultDatabase = "public"
     
     var _connection:OpaquePointer?
+
+    /// Whether the underlying libpq socket is still alive. Lets clients
+    /// distinguish "query failed" from "connection is gone" after an error.
+    public var isConnectionAlive: Bool {
+        return _connection != nil && PQstatus( _connection ) == CONNECTION_OK
+    }
     var _connection_str: [CChar]?
     var _db:String? = nil
     
