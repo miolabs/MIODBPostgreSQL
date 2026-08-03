@@ -322,6 +322,28 @@ open class MIODBPostgreSQL: MIONetworkDB
     }
 
     // MARK: - Diacritic-insensitive search helpers
-    // TODO
+
+    /// One-time, per-database setup for diacritic-insensitive search
+    /// (`WHERE_LINE_OPERATOR.ILIKE_DI`). Installs the `unaccent` extension in
+    /// the `public` schema — the dialect renders schema-qualified calls, so a
+    /// venue schema's search_path can never resolve a different function —
+    /// plus an IMMUTABLE wrapper that pins the dictionary, which is what makes
+    /// the column side indexable:
+    ///
+    ///     CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA public;
+    ///     CREATE INDEX product_name_di ON "Product"
+    ///         USING gin (public.immutable_unaccent("name") public.gin_trgm_ops);
+    ///
+    /// Needs a role allowed to CREATE EXTENSION (superuser / rds_superuser).
+    /// Queries fail with "function public.immutable_unaccent(text) does not
+    /// exist" on databases where this has not run — by design, loudly.
+    open func installDiacriticInsensitiveSearchSupport ( ) throws {
+        try executeQuery( "CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA public" )
+        try executeQuery( """
+            CREATE OR REPLACE FUNCTION public.immutable_unaccent(text) RETURNS text AS $$
+            SELECT public.unaccent('public.unaccent'::regdictionary, $1)
+            $$ LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
+            """ )
+    }
 }
 
