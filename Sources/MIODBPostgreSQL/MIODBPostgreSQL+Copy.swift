@@ -43,19 +43,24 @@ extension MIODBPostgreSQL
     }
 
     /// Escapes a string for COPY text format: backslash, tab, newline and
-    /// carriage return are the only characters with meaning.
-    private func copyEscape ( _ s: String, into out: inout String ) {
-        guard s.contains( where: { $0 == "\\" || $0 == "\t" || $0 == "\n" || $0 == "\r" } ) else {
+    /// carriage return are the only characters with meaning. Works on unicode
+    /// scalars, not Characters: CRLF is a single grapheme cluster, so a
+    /// Character-level scan never sees the "\r" or "\n" inside it and lets a
+    /// literal carriage return through (Postgres rejects it with 22P04).
+    /// Internal (not private) so the unit tests can exercise it without a
+    /// live server.
+    func copyEscape ( _ s: String, into out: inout String ) {
+        guard s.unicodeScalars.contains( where: { $0 == "\\" || $0 == "\t" || $0 == "\n" || $0 == "\r" } ) else {
             out += s
             return
         }
-        for ch in s {
+        for ch in s.unicodeScalars {
             switch ch {
             case "\\": out += "\\\\"
             case "\t": out += "\\t"
             case "\n": out += "\\n"
             case "\r": out += "\\r"
-            default:   out.append( ch )
+            default:   out.unicodeScalars.append( ch )
             }
         }
     }
