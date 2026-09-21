@@ -251,16 +251,22 @@ open class MIODBPostgreSQL: MIONetworkDB
         return formatter
     }()
     
+    // Fallback for values MDBSQLParseTimestamp rejects, keeping its contract:
+    // a `timestamp` value (no offset) is the local wall clock, parsed by the
+    // MIOCore wall-clock engine; a `timestamptz` value carries an offset and
+    // is an absolute instant, parsed as ISO8601.
     func convert_date( _ str: String, _ timeZone: Bool ) -> Date? {
-        let isoString = (timeZone ? str : str.appending( "+00"))
-            .replacingOccurrences(of: " ", with: "T")
-            .replacingOccurrences(of: "+00", with: "+00:00")
-        if let d = date_formatter.microsecondsDate(from: isoString) { return d }
-        if let d = MIOCoreDate(fromString: str) {
-            Log.debug( "ID: \(identifier). Fallback to String. date: \(isoString)" )
+        if timeZone {
+            let isoString = str
+                .replacingOccurrences(of: " ", with: "T")
+                .replacingOccurrences(of: "+00", with: "+00:00")
+            if let d = date_formatter.microsecondsDate(from: isoString) { return d }
+        }
+        if let d = MCDate.parseOrNil( str ) {
+            Log.debug( "ID: \(identifier). Fallback to String. date: \(str)" )
             return d
         }
-        Log.warning( "ID: \(identifier). date: \(isoString) -> Can't be converted to Date" )
+        Log.warning( "ID: \(identifier). date: \(str) -> Can't be converted to Date" )
         return nil
     }
     
