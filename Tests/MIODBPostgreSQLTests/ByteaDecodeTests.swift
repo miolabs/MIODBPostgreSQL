@@ -7,6 +7,7 @@
 //
 
 import XCTest
+import MIODB
 @testable import MIODBPostgreSQL
 
 final class ByteaDecodeTests: XCTestCase {
@@ -29,5 +30,16 @@ final class ByteaDecodeTests: XCTestCase {
         XCTAssertNil(MDBPostgreSQLDecodeBytea("\\x01a"), "odd digit count")
         XCTAssertNil(MDBPostgreSQLDecodeBytea("\\x01zz"), "non-hex digit")
         XCTAssertNil(MDBPostgreSQLDecodeBytea("AQID"), "base64 is the wire form, never the column form")
+    }
+
+    func testCopyEncodesBytesAsEscapedHex() {
+        // COPY text format: the bytea hex input "\x01ab" with its backslash escaped.
+        let db = MIODBPostgreSQL(host: "", user: "", password: "", database: "")
+        var out = ""
+        db.copyEncode(.bytes(Data([0x01, 0xAB])), into: &out)
+        XCTAssertEqual(out, "\\\\x01ab")
+        out = ""
+        db.copyEncode(.bytes(Data()), into: &out)
+        XCTAssertEqual(out, "\\\\x")
     }
 }

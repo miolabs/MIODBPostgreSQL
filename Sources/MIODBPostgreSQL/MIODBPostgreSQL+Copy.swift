@@ -65,7 +65,7 @@ extension MIODBPostgreSQL
         }
     }
 
-    private func copyEncode ( _ storage: MDBValueStorage, into out: inout String ) {
+    func copyEncode ( _ storage: MDBValueStorage, into out: inout String ) {
         switch storage {
         case .null:                   out += "\\N"
         case .bool( let b ):          out += b ? "t" : "f"
@@ -78,6 +78,8 @@ extension MIODBPostgreSQL
         case .uuid( let u ):          out += u.uuidString.uppercased()
         case .date( let d ):          out += MDBSQLTimestampString( d )
         case .json( let j ):          copyEscape( j, into: &out )
+        // bytea hex input format; the backslash is escaped like any other in COPY text.
+        case .bytes( let d ):         out += "\\\\x" + d.map { String( format: "%02x", $0 ) }.joined()
         case .raw, .array:            out += "\\N" // unreachable: copyCanEncode filters these
         }
     }
