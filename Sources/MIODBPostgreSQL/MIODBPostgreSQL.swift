@@ -226,6 +226,10 @@ open class MIODBPostgreSQL: MIONetworkDB
         case 114, 3802, 3807: // json, jsonb (= transformable for us), jsonb array
             return try JSONSerialization.jsonObject(with: str.data(using: .utf8)!, options: [.allowFragments] )
 
+        case 17: // bytea, hex output format
+            guard let d = MDBPostgreSQLDecodeBytea( str ) else { throw conversionFailed( "Data" ) }
+            return d
+
         case 2950: // UUID
             guard let u = UUID( uuidString: str ) else { throw conversionFailed( "UUID" ) }
             return u
