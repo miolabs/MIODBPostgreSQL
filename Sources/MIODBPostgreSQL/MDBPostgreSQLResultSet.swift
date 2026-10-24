@@ -69,8 +69,14 @@ public final class MDBPostgreSQLResultSet : MDBResultSet
         }
     }
 
-    /// Throws only for values that fail JSON parsing (json/jsonb columns).
     public override func value ( row: Int, col: Int ) throws -> Any? {
+        return try sendableValue( row: row, col: col )
+    }
+
+    /// Every cell is `Sendable` by construction: `convert` is typed
+    /// `any Sendable`, so no runtime rebuild happens here. Throws only for
+    /// values that fail JSON parsing (json/jsonb columns).
+    public override func sendableValue ( row: Int, col: Int ) throws -> (any Sendable)? {
         let r = Int32( row ), c = Int32( col )
         guard let res = _result else { return NSNull() }
         if PQgetisnull( res, r, c ) == 1 { return NSNull() }

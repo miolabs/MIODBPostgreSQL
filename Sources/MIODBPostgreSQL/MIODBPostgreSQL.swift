@@ -173,7 +173,10 @@ open class MIODBPostgreSQL: MIONetworkDB
         return MDBPostgreSQLResultSet( result: res, db: self )
     }
     
-    func convert ( value:UnsafePointer<Int8>, withType type:Oid ) throws -> Any {
+    /// Returns `any Sendable` so the compiler checks every cell type at the
+    /// return site; the only runtime rebuild is the JSON case, whose
+    /// `JSONSerialization` output is statically `Any`.
+    func convert ( value:UnsafePointer<Int8>, withType type:Oid ) throws -> any Sendable {
         if type == 16 { // Boolean
             return (value[0] == 116) as Bool
         }
@@ -224,7 +227,7 @@ open class MIODBPostgreSQL: MIONetworkDB
         case 1043: // varchar
             return str
         case 114, 3802, 3807: // json, jsonb (= transformable for us), jsonb array
-            return try JSONSerialization.jsonObject(with: str.data(using: .utf8)!, options: [.allowFragments] )
+            return try MDBSendable.value( try JSONSerialization.jsonObject(with: str.data(using: .utf8)!, options: [.allowFragments] ) )
 
         case 17: // bytea, hex output format
             guard let d = MDBPostgreSQLDecodeBytea( str ) else { throw conversionFailed( "Data" ) }
